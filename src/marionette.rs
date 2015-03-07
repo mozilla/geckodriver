@@ -13,7 +13,7 @@ use mozprofile::preferences::{PrefValue};
 use webdriver::command::{WebDriverMessage};
 use webdriver::command::WebDriverCommand::{
     NewSession, DeleteSession, Get, GetCurrentUrl,
-    GoBack, GoForward, Refresh, GetTitle, GetWindowHandle,
+    GoBack, GoForward, Refresh, GetTitle, GetPageSource, GetWindowHandle,
     GetWindowHandles, Close, SetWindowSize,
     GetWindowSize, MaximizeWindow, SwitchToWindow, SwitchToFrame,
     SwitchToParentFrame, FindElement, FindElements,
@@ -280,7 +280,7 @@ impl MarionetteSession {
             },
             //Things that simply return the contents of the marionette "value" property
             GetCurrentUrl | GetTitle | GetWindowHandle | GetWindowHandles |
-            IsDisplayed(_) | IsSelected(_) |
+            GetPageSource | IsDisplayed(_) | IsSelected(_) |
             GetElementAttribute(_, _) | GetCSSValue(_, _) | GetElementText(_) |
             GetElementTagName(_) | IsEnabled(_) | ExecuteScript(_) | ExecuteAsyncScript(_) |
             GetAlertText | TakeScreenshot(_) => {
@@ -325,30 +325,30 @@ impl MarionetteSession {
                 let x = try_opt!(
                     try_opt!(value.get("x"),
                              ErrorStatus::UnknownError,
-                             "Failed to find x field").as_u64(),
+                             "Failed to find x field").as_f64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret x as integer");
+                    "Failed to interpret x as float");
 
                 let y = try_opt!(
                     try_opt!(value.get("y"),
                              ErrorStatus::UnknownError,
-                             "Failed to find y field").as_u64(),
+                             "Failed to find y field").as_f64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret y as integer");
+                    "Failed to interpret y as float");
 
                 let width = try_opt!(
                     try_opt!(value.get("width"),
                              ErrorStatus::UnknownError,
-                             "Failed to find width field").as_u64(),
+                             "Failed to find width field").as_f64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret width as integer");
+                    "Failed to interpret width as float");
 
                 let height = try_opt!(
                     try_opt!(value.get("height"),
                              ErrorStatus::UnknownError,
-                             "Failed to find height field").as_u64(),
+                             "Failed to find height field").as_f64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret width as integer");
+                    "Failed to interpret width as float");
 
                 WebDriverResponse::ElementRect(ElementRectResponse::new(x, y, width, height))
             },
@@ -639,6 +639,7 @@ impl ToMarionette for WebDriverMessage {
             GoForward => (Some("goForward"), None),
             Refresh => (Some("refresh"), None),
             GetTitle => (Some("getTitle"), None),
+            GetPageSource => (Some("getPageSource"), None),
             GetWindowHandle => (Some("getWindowHandle"), None),
             GetWindowHandles => (Some("getWindowHandles"), None),
             Close => (Some("close"), None),
@@ -687,7 +688,7 @@ impl ToMarionette for WebDriverMessage {
                 let mut data = BTreeMap::new();
                 data.insert("id".to_string(), e.id.to_json());
                 data.insert("name".to_string(), x.to_json());
-                (Some("getElementValueOfCSSProperty"), Some(Ok(Json::Object(data))))
+                (Some("getElementValueOfCssProperty"), Some(Ok(Json::Object(data))))
             },
             GetElementText(ref x) => (Some("getElementText"), Some(x.to_marionette())),
             GetElementTagName(ref x) => (Some("getElementTagName"), Some(x.to_marionette())),
