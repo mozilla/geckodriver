@@ -13,7 +13,7 @@ use mozprofile::preferences::{PrefValue};
 use webdriver::command::{WebDriverMessage};
 use webdriver::command::WebDriverCommand::{
     NewSession, DeleteSession, Get, GetCurrentUrl,
-    GoBack, GoForward, Refresh, GetTitle, GetWindowHandle,
+    GoBack, GoForward, Refresh, GetTitle, GetPageSource, GetWindowHandle,
     GetWindowHandles, Close, SetWindowSize,
     GetWindowSize, MaximizeWindow, SwitchToWindow, SwitchToFrame,
     SwitchToParentFrame, FindElement, FindElements,
@@ -280,7 +280,7 @@ impl MarionetteSession {
             },
             //Things that simply return the contents of the marionette "value" property
             GetCurrentUrl | GetTitle | GetWindowHandle | GetWindowHandles |
-            IsDisplayed(_) | IsSelected(_) |
+            GetPageSource | IsDisplayed(_) | IsSelected(_) |
             GetElementAttribute(_, _) | GetCSSValue(_, _) | GetElementText(_) |
             GetElementTagName(_) | IsEnabled(_) | ExecuteScript(_) | ExecuteAsyncScript(_) |
             GetAlertText | TakeScreenshot(_) => {
@@ -639,6 +639,7 @@ impl ToMarionette for WebDriverMessage {
             GoForward => (Some("goForward"), None),
             Refresh => (Some("refresh"), None),
             GetTitle => (Some("getTitle"), None),
+            GetPageSource => (Some("getPageSource"), None),
             GetWindowHandle => (Some("getWindowHandle"), None),
             GetWindowHandles => (Some("getWindowHandles"), None),
             Close => (Some("close"), None),
