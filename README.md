@@ -1,5 +1,4 @@
-wires
-================
+# Wires
 
 > WebDriver <-> Marionette proxy
 
@@ -24,3 +23,7 @@ For example, you can specify a binary path to Firefox and run the proxy:
 ```
 cargo run -b /Applications/FirefoxNightly.app/Contents/MacOS/firefox-bin
 ```
+
+## Changelog
+
+The changelog is available in [History.md](https://github.com/jgraham/wires/blob/master/History.md)
