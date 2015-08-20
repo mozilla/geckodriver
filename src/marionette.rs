@@ -983,3 +983,124 @@ impl ToMarionette for FrameId {
         }
     }
 }
+
+#[cfg(test)]
+mod object_from_json {
+    use marionette::object_from_json;
+    use webdriver::error::ErrorStatus::UnknownError;
+
+    #[test]
+    fn unmarshals_string_to_json() {
+        let resp = object_from_json("{\"foo\": \"bar\"}");
+        let obj = resp.ok().expect("failed to unmarshal");
+        let foo = obj.get("foo").unwrap();
+        assert_eq!("bar", foo.as_string().unwrap());
+    }
+
+    #[test]
+    fn errors_on_invalid_json() {
+        match object_from_json("invalid") {
+            Ok(_) => panic!(),
+            Err(e) => assert_eq!(UnknownError, e.status)
+        }
+    }
+}
+
+#[cfg(test)]
+mod MarionetteSession {
+    use marionette::MarionetteSession;
+
+    #[test]
+    fn explicit_session_id() {
+        let s = MarionetteSession::new(Some("foo".to_string()));
+        assert_eq!("foo", s.session_id);
+        assert_eq!("root", s.to);
+    }
+
+    #[test]
+    fn implicit_session_id() {
+        let s = MarionetteSession::new(None);
+        assert!(s.session_id.is_empty());
+        assert_eq!("root", s.to);
+    }
+
+    mod msg_to_marionette {
+        use marionette::MarionetteSession;
+        use webdriver::command::WebDriverMessage;
+        use webdriver::command::WebDriverCommand::GetCurrentUrl;
+
+        #[test]
+        fn adds_to_field() {
+            let session = MarionetteSession::new(None);
+            let id = Some(session.session_id.clone());
+            let msg = WebDriverMessage::new(id, GetCurrentUrl);
+
+            let json = session.msg_to_marionette(&msg).ok().expect("failed to marshal");
+            let obj = json.as_object().unwrap();
+
+            match obj.get("to") {
+                Some(v) => assert_eq!(session.to, v.as_string().unwrap()),
+                None => panic!("`to` field missing: {:?}", obj)
+            }
+        }
+    }
+
+    mod to_web_element {
+        use marionette::MarionetteSession;
+        use webdriver::common::WebElement;
+        use webdriver::error::ErrorStatus::UnknownError;
+        use rustc_serialize::json::{Json, ToJson};
+
+        #[test]
+        fn non_object() {
+            let session = MarionetteSession::new(None);
+            let json = Json::from_str("{\"ELEMENT\": 42}").unwrap();
+
+            match session.to_web_element(&json) {
+                Ok(_) => panic!(),
+                Err(e) => assert_eq!(UnknownError, e.status)
+            }
+        }
+
+        #[test]
+        fn by_element_string() {
+            let session = MarionetteSession::new(None);
+            let json = Json::from_str("{\"ELEMENT\": \"foobar\"}").unwrap();
+            let obj = json.as_object().unwrap();
+
+            let el = session.to_web_element(&json).unwrap();
+            assert_eq!("foobar", el.id);
+        }
+
+        // WebElement uses ELEMENT_KEY by default
+        #[test]
+        fn by_element_key() {
+            let session = MarionetteSession::new(None);
+            let el = WebElement::new("foobar".to_string());
+            let json = el.to_json();
+
+            let t = session.to_web_element(&json).unwrap();
+            assert!(el.eq(&t));
+        }
+    }
+
+    mod error_from_string {
+        use marionette::MarionetteSession;
+        use webdriver::error::ErrorStatus;
+
+        fn by_str(s: &str) -> ErrorStatus {
+            let session = MarionetteSession::new(None);
+            session.error_from_string(s)
+        }
+
+        #[test]
+        fn unknown_error() {
+            assert_eq!(ErrorStatus::UnknownError, by_str("foobar"));
+        }
+
+        #[test]
+        fn known_error() {
+            assert_eq!(ErrorStatus::JavascriptError, by_str("javascript error"));
+        }
+    }
+}
