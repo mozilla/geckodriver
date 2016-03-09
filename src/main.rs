@@ -10,6 +10,7 @@ extern crate rustc_serialize;
 #[macro_use]
 extern crate webdriver;
 
+use mozprofile::preferences::{PrefValue};
 use std::borrow::ToOwned;
 use std::process::exit;
 use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr};
@@ -32,7 +33,6 @@ macro_rules! try_opt {
 
 mod marionette;
 
-#[derive(Debug)]
 struct Options {
     binary: String,
     webdriver_host: String,
@@ -81,7 +81,6 @@ fn parse_args() -> Options {
         println!("Must supply a binary path or --connect-existing\n");
         exit(1)
     }
-    println!("{:?}", opts);
     opts
 }
 
@@ -106,7 +105,8 @@ fn main() {
     };
 
     let settings = MarionetteSettings::new(opts.marionette_port,
-                                           launcher);
+                                           launcher,
+                                           opts.e10s_profile);
 
     //TODO: what if binary isn't a valid path?
     start(addr, MarionetteHandler::new(settings), extension_routes());
