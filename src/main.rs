@@ -32,13 +32,16 @@ macro_rules! try_opt {
 
 mod marionette;
 
+#[derive(Debug)]
 struct Options {
     binary: String,
     webdriver_host: String,
     webdriver_port: u16,
     marionette_port: u16,
-    connect_existing: bool
+    connect_existing: bool,
+    e10s_profile: bool
 }
+
 
 fn parse_args() -> Options {
     let mut opts = Options {
@@ -46,7 +49,8 @@ fn parse_args() -> Options {
         webdriver_host: "127.0.0.1".to_owned(),
         webdriver_port: 4444u16,
         marionette_port: 2828u16,
-        connect_existing: false
+        connect_existing: false,
+        e10s_profile: false
     };
 
     {
@@ -67,6 +71,9 @@ fn parse_args() -> Options {
         parser.refer(&mut opts.connect_existing)
             .add_option(&["--connect-existing"], StoreTrue,
                         "Connect to an existing firefox process");
+        parser.refer(&mut opts.e10s_profile)
+            .add_option(&["--e10s-profile"], StoreTrue,
+                        "Load Firefox with an e10s profile");
         parser.parse_args_or_exit();
     }
 
@@ -74,7 +81,7 @@ fn parse_args() -> Options {
         println!("Must supply a binary path or --connect-existing\n");
         exit(1)
     }
-
+    println!("{:?}", opts);
     opts
 }
 
