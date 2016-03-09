@@ -10,7 +10,6 @@ extern crate rustc_serialize;
 #[macro_use]
 extern crate webdriver;
 
-use mozprofile::preferences::{PrefValue};
 use std::borrow::ToOwned;
 use std::process::exit;
 use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr};
@@ -39,7 +38,7 @@ struct Options {
     webdriver_port: u16,
     marionette_port: u16,
     connect_existing: bool,
-    e10s_profile: bool
+    e10s: bool
 }
 
 
@@ -50,7 +49,7 @@ fn parse_args() -> Options {
         webdriver_port: 4444u16,
         marionette_port: 2828u16,
         connect_existing: false,
-        e10s_profile: false
+        e10s: false
     };
 
     {
@@ -71,8 +70,8 @@ fn parse_args() -> Options {
         parser.refer(&mut opts.connect_existing)
             .add_option(&["--connect-existing"], StoreTrue,
                         "Connect to an existing firefox process");
-        parser.refer(&mut opts.e10s_profile)
-            .add_option(&["--e10s-profile"], StoreTrue,
+        parser.refer(&mut opts.e10s)
+            .add_option(&["--e10s"], StoreTrue,
                         "Load Firefox with an e10s profile");
         parser.parse_args_or_exit();
     }
@@ -106,7 +105,7 @@ fn main() {
 
     let settings = MarionetteSettings::new(opts.marionette_port,
                                            launcher,
-                                           opts.e10s_profile);
+                                           opts.e10s);
 
     //TODO: what if binary isn't a valid path?
     start(addr, MarionetteHandler::new(settings), extension_routes());
