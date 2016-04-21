@@ -30,12 +30,13 @@ use webdriver::command::WebDriverCommand::{
     ElementClick, ElementTap, ElementClear, ElementSendKeys,
     ExecuteScript, ExecuteAsyncScript, GetCookies, GetCookie, AddCookie,
     DeleteCookies, DeleteCookie, SetTimeouts, DismissAlert,
-    AcceptAlert, GetAlertText, SendAlertText, TakeScreenshot, Extension};
+    AcceptAlert, GetAlertText, SendAlertText, TakeScreenshot, Actions,
+    Extension};
 use webdriver::command::{
     GetParameters, WindowSizeParameters, SwitchToWindowParameters,
     SwitchToFrameParameters, LocatorParameters, JavascriptCommandParameters,
     GetCookieParameters, AddCookieParameters, TimeoutsParameters,
-    TakeScreenshotParameters};
+    TakeScreenshotParameters, ActionsParameters};
 use webdriver::response::{
     WebDriverResponse, NewSessionResponse, ValueResponse, WindowSizeResponse,
     ElementRectResponse, CookieResponse, Cookie};
