@@ -17,12 +17,12 @@ use std::borrow::ToOwned;
 use std::process::exit;
 use std::net::{SocketAddr, IpAddr};
 use std::str::FromStr;
-use std::path::Path;
+use std::path::PathBuf;
 
-use argparse::{ArgumentParser, StoreTrue, Store};
+use argparse::{ArgumentParser, StoreTrue, Store, StoreOption};
 use webdriver::server::start;
 
-use marionette::{MarionetteHandler, BrowserLauncher, MarionetteSettings, extension_routes};
+use marionette::{MarionetteHandler, MarionetteSettings, extension_routes};
 
 macro_rules! try_opt {
     ($expr:expr, $err_type:expr, $err_msg:expr) => ({
@@ -36,7 +36,7 @@ macro_rules! try_opt {
 mod marionette;
 
 struct Options {
-    binary: String,
+    binary: Option<String>,
     webdriver_host: String,
     webdriver_port: u16,
     marionette_port: u16,
@@ -47,7 +47,7 @@ struct Options {
 
 fn parse_args() -> Options {
     let mut opts = Options {
-        binary: "".to_owned(),
+        binary: None,
         webdriver_host: "127.0.0.1".to_owned(),
         webdriver_port: 4444u16,
         marionette_port: 2828u16,
@@ -59,7 +59,7 @@ fn parse_args() -> Options {
         let mut parser = ArgumentParser::new();
         parser.set_description("WebDriver to marionette proxy.");
         parser.refer(&mut opts.binary)
-            .add_option(&["-b", "--binary"], Store,
+            .add_option(&["-b", "--binary"], StoreOption,
                         "Path to the Firefox binary");
         parser.refer(&mut opts.webdriver_host)
             .add_option(&["--webdriver-host"], Store,
@@ -79,10 +79,6 @@ fn parse_args() -> Options {
         parser.parse_args_or_exit();
     }
 
-    if opts.binary == "" && !opts.connect_existing {
-        println!("Must supply a binary path or --connect-existing\n");
-        exit(1)
-    }
     opts
 }
 
@@ -100,14 +96,9 @@ fn main() {
         }
         );
 
-    let launcher = if opts.connect_existing {
-        BrowserLauncher::None
-    } else {
-        BrowserLauncher::BinaryLauncher(Path::new(&opts.binary).to_path_buf())
-    };
-
     let settings = MarionetteSettings::new(opts.marionette_port,
-                                           launcher,
+                                           opts.binary.map(|x| PathBuf::from(x)),
+                                           opts.connect_existing,
                                            opts.e10s);
 
     //TODO: what if binary isn't a valid path?
@@ -117,7 +108,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use marionette::{MarionetteSettings, MarionetteHandler, BrowserLauncher};
+    use marionette::{MarionetteSettings, MarionetteHandler};
     use webdriver::command::NewSessionParameters;
     use rustc_serialize::json::Json;
     use std::fs::File;
@@ -147,7 +138,7 @@ mod tests {
         };
 
         let handler = MarionetteHandler::new(
-            MarionetteSettings::new(2828u16, BrowserLauncher::None, false));
+            MarionetteSettings::new(2828u16, None, false, false));
 
         let mut gecko_profile = handler.load_profile(&capabilities).unwrap().unwrap();
         handler.set_prefs(&mut gecko_profile, true).unwrap();
