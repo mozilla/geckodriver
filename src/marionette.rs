@@ -232,15 +232,17 @@ pub enum BrowserLauncher {
 
 pub struct MarionetteSettings {
     port: u16,
-    launcher: BrowserLauncher,
+    binary: Option<PathBuf>,
+    connect_existing: bool,
     e10s: bool
 }
 
 impl MarionetteSettings {
-    pub fn new(port: u16, launcher: BrowserLauncher, e10s: bool) -> MarionetteSettings {
+    pub fn new(port: u16, binary: Option<PathBuf>, connect_existing: bool, e10s: bool) -> MarionetteSettings {
         MarionetteSettings {
             port: port,
-            launcher: launcher,
+            binary: binary,
+            connect_existing: connect_existing,
             e10s: e10s
         }
     }
@@ -248,7 +250,8 @@ impl MarionetteSettings {
 
 pub struct MarionetteHandler {
     connection: Mutex<Option<MarionetteConnection>>,
-    launcher: BrowserLauncher,
+    binary: Option<PathBuf>,
+    connect_existing: bool,
     browser: Option<FirefoxRunner>,
     port: u16,
     e10s: bool,
@@ -258,7 +261,8 @@ impl MarionetteHandler {
     pub fn new(settings: MarionetteSettings) -> MarionetteHandler {
         MarionetteHandler {
             connection: Mutex::new(None),
-            launcher: settings.launcher,
+            binary: settings.binary,
+            connect_existing: settings.connect_existing,
             browser: None,
             port: settings.port,
             e10s: settings.e10s
@@ -269,7 +273,26 @@ impl MarionetteHandler {
                          capabilities: &NewSessionParameters) -> WebDriverResult<()> {
         let profile = try!(self.load_profile(capabilities));
         let args = try!(self.load_browser_args(capabilities));
-        match self.start_browser(profile, args) {
+        let launcher = if self.connect_existing {
+            BrowserLauncher::None
+        } else {
+            let binary = if let Some(binary_capability) = capabilities.get("firefox_binary") {
+                Some(PathBuf::from(try!(binary_capability
+                                        .as_string()
+                                        .ok_or(WebDriverError::new(
+                                            ErrorStatus::InvalidArgument,
+                                            "'firefox_binary' capability was not a string")))))
+            } else {
+                self.binary.as_ref().map(|x| x.clone())
+            };
+            if let Some(path) = binary {
+                BrowserLauncher::BinaryLauncher(path)
+            } else {
+                return Err(WebDriverError::new(ErrorStatus::UnknownError,
+                                               "'firefox_binary' capability not provided and no binary set on the command line"));
+            }
+        };
+        match self.start_browser(launcher, profile, args) {
             Err(e) => {
                 return Err(WebDriverError::new(ErrorStatus::UnknownError,
                                                e.description().to_owned()));
@@ -285,10 +308,10 @@ impl MarionetteHandler {
         Ok(())
     }
 
-    fn start_browser(&mut self, profile: Option<Profile>, args: Option<Vec<String>>) -> Result<(), RunnerError> {
+    fn start_browser(&mut self, launcher: BrowserLauncher, profile: Option<Profile>, args: Option<Vec<String>>) -> Result<(), RunnerError> {
         let custom_profile = profile.is_some();
 
-        match self.launcher {
+        match launcher {
             BrowserLauncher::BinaryLauncher(ref binary) => {
                 let mut runner = try!(FirefoxRunner::new(&binary, profile));
                 if let Some(cmd_args) = args {
