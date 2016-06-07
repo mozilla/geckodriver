@@ -1,8 +1,34 @@
-language: rust
-rust:
-  - stable
-  - beta
-  - nightly
+language: generic
+
 matrix:
-  allow_failures:
-    - rust: nightly
+  include:
+    - env: TARGET=x86_64-unknown-linux-gnu
+    - env: TARGET=x86_64-unknown-linux-musl
+      dist: trusty
+      sudo: required
+      addons:
+        apt:
+          packages:
+            - musl-tools
+            - libbz2-dev
+    - env: TARGET=x86_64-pc-windows-gnu
+      dist: trusty
+      sudo: required
+      addons:
+        apt:
+          packages:
+            - gcc-mingw-w64
+            - libbz2-dev
+
+install:
+  - export PATH="$PATH:$HOME/.cargo/bin"
+  - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain=stable
+  - rustc -V
+  - cargo -V
+
+script:
+  - bash ci.sh
+
+branches:
+  only:
+    - master
