@@ -59,22 +59,22 @@ cargo_build() {
 cargo_test() {
 	# this list is a dump of `rustup target list | grep linux`
 	case "$TARGET" in
-	aarch64-unknown-linux-gnu)
-	arm-linux-androideabi)
-	arm-unknown-linux-gnueabi)
-	arm-unknown-linux-gnueabihf)
-	armv7-unknown-linux-gnueabihf)
-	i586-unknown-linux-gnu)
-	i686-unknown-linux-gnu)
-	i686-unknown-linux-musl)
-	mips-unknown-linux-gnu)
-	mips-unknown-linux-musl)
-	mipsel-unknown-linux-gnu)
-	mipsel-unknown-linux-musl)
-	powerpc-unknown-linux-gnu)
-	powerpc64-unknown-linux-gnu)
-	powerpc64le-unknown-linux-gnu)
-	x86_64-unknown-linux-gnu)
+	aarch64-unknown-linux-gnu) ;&
+	arm-linux-androideabi) ;&
+	arm-unknown-linux-gnueabi) ;&
+	arm-unknown-linux-gnueabihf) ;&
+	armv7-unknown-linux-gnueabihf) ;&
+	i586-unknown-linux-gnu) ;&
+	i686-unknown-linux-gnu) ;&
+	i686-unknown-linux-musl) ;&
+	mips-unknown-linux-gnu) ;&
+	mips-unknown-linux-musl) ;&
+	mipsel-unknown-linux-gnu) ;&
+	mipsel-unknown-linux-musl) ;&
+	powerpc-unknown-linux-gnu) ;&
+	powerpc64-unknown-linux-gnu) ;&
+	powerpc64le-unknown-linux-gnu) ;&
+	x86_64-unknown-linux-gnu) ;&
 	x86_64-unknown-linux-musl)
 		cargo test --target $1
 		;;
