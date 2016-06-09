@@ -18,8 +18,6 @@ matrix:
             - musl-tools
             - libbz2-dev
     - env: TARGET=x86_64-pc-windows-gnu
-      dist: trusty
-      sudo: required
       addons:
         apt:
           packages:
