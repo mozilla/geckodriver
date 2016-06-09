@@ -11,6 +11,7 @@ matrix:
           packages:
             - musl-tools
             - libbz2-dev
+            - gcc-multilib
       before_install:
         - sudo dpkg --add-architecture i386
     - env: TARGET=x86_64-unknown-linux-gnu
