@@ -78,11 +78,11 @@ cargo_test() {
 	x86_64-unknown-linux-musl)
 		cargo test --target $1
 		;;
-
 	*)
 		>&2 echo "not running tests on $1"
 		return
 		;;
+	esac
 }
 
 main() {
