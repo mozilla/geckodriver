@@ -6,6 +6,7 @@ matrix:
       addons:
         apt:
           - gcc-multilib
+    - env: i686-unknown-freebsd
     - env: TARGET=x86_64-unknown-linux-gnu
     - env: TARGET=x86_64-unknown-linux-musl
       dist: trusty
@@ -15,6 +16,7 @@ matrix:
           packages:
             - musl-tools
             - libbz2-dev
+    - env: x86_64-unknown-freebsd
     - env: TARGET=x86_64-pc-windows-gnu
       dist: trusty
       addons:
