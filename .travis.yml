@@ -6,8 +6,6 @@ matrix:
       addons:
         apt:
           - gcc-multilib
-    # disabled because it is not yet available in Rust stable:
-    #- env: TARGET=i686-unknown-linux-musl
     - env: TARGET=x86_64-unknown-linux-gnu
     - env: TARGET=x86_64-unknown-linux-musl
       dist: trusty
@@ -18,6 +16,7 @@ matrix:
             - musl-tools
             - libbz2-dev
     - env: TARGET=x86_64-pc-windows-gnu
+      dist: trusty
       addons:
         apt:
           packages:
