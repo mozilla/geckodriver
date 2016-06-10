@@ -5,6 +5,7 @@ matrix:
     - env: TARGET=i686-unknown-linux-gnu
       addons:
         apt:
+          packages:
           - gcc-multilib
     - env: TARGET=i686-unknown-freebsd
     - env: TARGET=x86_64-unknown-linux-gnu
@@ -14,16 +15,16 @@ matrix:
       addons:
         apt:
           packages:
-            - musl-tools
-            - libbz2-dev
+          - musl-tools
+          - libbz2-dev
     - env: TARGET=x86_64-unknown-freebsd
     - env: TARGET=x86_64-pc-windows-gnu
       dist: trusty
       addons:
         apt:
           packages:
-            - gcc-mingw-w64
-            - libbz2-dev
+          - gcc-mingw-w64
+          - libbz2-dev
 
 install:
   - export PATH="$PATH:$HOME/.cargo/bin"
