@@ -26,7 +26,7 @@ matrix:
       addons:
         apt:
           packages:
-          - gcc-mingw-w64-x86-64
+          - gcc-mingw-w64 gcc-mingw-w64-x86-64
           - libbz2-dev
 
 install:
