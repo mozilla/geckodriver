@@ -8,6 +8,10 @@ matrix:
           packages:
           - gcc-multilib
     - env: TARGET=i686-unknown-freebsd
+      addons:
+        apt:
+          packages:
+          - libc6-dev-i386
     - env: TARGET=x86_64-unknown-linux-gnu
     - env: TARGET=x86_64-unknown-linux-musl
       dist: trusty
