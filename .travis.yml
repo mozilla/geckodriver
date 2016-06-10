@@ -7,13 +7,13 @@ matrix:
         apt:
           packages:
           - gcc-multilib
-          - libc6-dev
+          - gnulib
     - env: TARGET=i686-unknown-freebsd
       addons:
         apt:
           packages:
           - gcc-multilib
-          - libc6-dev
+          - gnulib
     - env: TARGET=x86_64-unknown-linux-gnu
     - env: TARGET=x86_64-unknown-linux-musl
       dist: trusty
@@ -32,6 +32,7 @@ matrix:
           - gcc-mingw-w64-i686
           - gcc-mingw-w64-x86-64
           - binutils-mingw-w64-x86-64
+          - binutils-mingw-w64-i686
           - libbz2-dev
 
 install:
