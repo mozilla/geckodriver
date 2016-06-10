@@ -19,7 +19,6 @@ matrix:
           - libbz2-dev
     - env: TARGET=x86_64-unknown-freebsd
     - env: TARGET=x86_64-pc-windows-gnu
-      dist: trusty
       addons:
         apt:
           packages:
