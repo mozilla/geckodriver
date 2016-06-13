@@ -21,7 +21,7 @@ ensure you do a compilation with optimisations:
 
     % cargo build --release
 
-Or if you want a non-optimised binary with debug symbols:
+Or if you want a non-optimised binary for debugging:
 
     % cargo build
  
