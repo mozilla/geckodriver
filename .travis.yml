@@ -40,3 +40,16 @@ script:
 branches:
   only:
     - master
+
+deploy:
+  provider: releases
+  api_key: "TOKEN"
+  skip_cleanup: true
+  file:
+    - "geckodriver-$TRAVIS_TAG.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-i686-unknown-linux-gnu.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-x86_64-unknown-linux-gnu.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-x86_64-unknown-linux-musl.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-x86_64-pc-windows-gnu.tar.gz"
+  on:
+    tags: true
