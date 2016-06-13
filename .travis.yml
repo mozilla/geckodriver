@@ -40,3 +40,19 @@ script:
 branches:
   only:
     - master
+
+deploy:
+  provider: releases
+  api_key:
+    secure:
+      OY6y0xRhlGSBH+3+7+7K6s4pp0Tf3BA61NAubEK4gpO23AKfyJUK+vqqCbdo06Z0E4QO4O1ke6fot7Gq9EdxJmsl/Kk5LDd9Rv3BXSYdjPupzs7coYuD8wv10NfAX6ETd9ITyPim2Zq6bq8nx1S2ESTpos/js1HCtVW3nrlCV58=
+  skip_cleanup: true
+  file:
+    - "geckodriver-$TRAVIS_TAG.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-i686-unknown-linux-gnu.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-x86_64-unknown-linux-gnu.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-x86_64-unknown-linux-musl.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-x86_64-pc-windows-gnu.tar.gz"
+  on:
+    tags: true
+    repo: mozilla/geckodriver
