@@ -2,12 +2,6 @@ language: generic
 
 matrix:
   include:
-    - env: TARGET=i686-unknown-linux-gnu
-      addons:
-        apt:
-          packages:
-          - gcc-multilib
-    - env: TARGET=x86_64-unknown-linux-gnu
     - env: TARGET=x86_64-unknown-linux-musl
       dist: trusty
       sudo: required
