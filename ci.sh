@@ -91,12 +91,14 @@ package_binary() {
 	local bin
 	bin=$(get_binary $2 $3)
 
+	ln -s $(dirname $(readlink -f $bin)) geckodriver-$1
+
 	if [[ "$2" =~ "windows" ]]
 	then
-		zip geckodriver-$1-$2.zip $bin
+		zip geckodriver-$1-$2.zip geckodriver-$1/geckodriver
 		file geckodriver-$1-$2.zip
 	else
-		tar zcvf geckodriver-$1-$2.tar.gz $bin
+		tar zcvf geckodriver-$1-$2.tar.gz geckodriver-$1/geckodriver
 		file geckodriver-$1-$2.tar.gz
 	fi
 }
@@ -104,7 +106,7 @@ package_binary() {
 # Create a compressed archive of the source code
 # for the given git tag.
 package_source() {
-	git archive --format=tar --prefix="geckodriver$1/" $1 | \
+	git archive --format=tar --prefix="geckodriver-$1/" $1 | \
 		gzip >geckodriver-$1.tar.gz
 }
 
