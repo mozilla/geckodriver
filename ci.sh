@@ -126,7 +126,7 @@ main() {
 	cargo_build $TARGET
 	cargo_test $TARGET
 
-	TRAVIS_TAG="1.0.0"
+	export TRAVIS_TAG="1.0.0"
 
 	# when something is tagged,
 	# also create a release build and package it
