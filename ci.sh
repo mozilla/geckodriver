@@ -70,7 +70,6 @@ cargo_test() {
 	then
 		cargo test --target $1
 	fi
-	echo $?
 }
 
 # Returns relative path to binary
@@ -124,15 +123,13 @@ main() {
 
 	cargo_config $TARGET
 	cargo_build $TARGET
-
-	local test_success
-	test_success=$(cargo_test $TARGET)
+	cargo_test $TARGET
 
 	export TRAVIS_TAG="1.0.0"
 
 	# when something is tagged,
 	# also create a release build and package it
-	if [ ! -z "$TRAVIS_TAG" ] && [ $test_success -eq 0 ]
+	if [ ! -z "$TRAVIS_TAG" ]
 	then
 		cargo_build $TARGET 1
 		package_binary $TRAVIS_TAG $TARGET "release"
