@@ -115,9 +115,11 @@ package_binary() {
 	then
 		zip geckodriver-$1-$target.zip geckodriver-$1/*
 		file geckodriver-$1-$target.zip
+		mv geckodriver-$1-$target.zip $cwd
 	else	
 		tar zcvf geckodriver-$1-$target.tar.gz geckodriver-$1/
 		file geckodriver-$1-$target.tar.gz
+		mv geckodriver-$1-$target.tar.gz $cwd
 	fi
 
 	cd $cwd
