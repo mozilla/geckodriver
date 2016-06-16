@@ -69,9 +69,8 @@ cargo_test() {
 	if echo "$1" | grep -E "(i686|x86_64)-unknown-linux-(gnu|musl)"
 	then
 		cargo test --target $1
-	else
-		>&2 echo "not running tests on $1"
 	fi
+	echo $?
 }
 
 # Returns relative path to binary
@@ -122,15 +121,18 @@ package_source() {
 
 main() {
 	rustup_target_add $TARGET
+
 	cargo_config $TARGET
 	cargo_build $TARGET
-	cargo_test $TARGET
+
+	local test_success
+	test_success=$(cargo_test $TARGET)
 
 	export TRAVIS_TAG="1.0.0"
 
 	# when something is tagged,
 	# also create a release build and package it
-	if [ ! -z "$TRAVIS_TAG" ] && [ $TRAVIS_TEST_RESULT -eq 0 ]
+	if [ ! -z "$TRAVIS_TAG" ] && [ $test_success -eq 0 ]
 	then
 		cargo_build $TARGET 1
 		package_binary $TRAVIS_TAG $TARGET "release"
