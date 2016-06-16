@@ -130,7 +130,7 @@ main() {
 
 	# when something is tagged,
 	# also create a release build and package it
-	if [ -z "$TRAVIS_TAG" && $TRAVIS_TEST_RESULT -eq 0 ]
+	if [ -z "$TRAVIS_TAG" ] && [ $TRAVIS_TEST_RESULT -eq 0 ]
 	then
 		cargo_build $TARGET 1
 		package_binary $TRAVIS_TAG $TARGET "release"
