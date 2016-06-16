@@ -86,6 +86,10 @@ get_binary() {
 # Create a compressed archive of the binary
 # for the given given git tag, build target, and build type.
 package_binary() {
+	local dir
+	dir=/tmp/geckodriver-$1
+	mkdir -p $dir
+
 	local target
 	case "$2" in
 	x86_64-pc-windows-gnu)
@@ -99,14 +103,16 @@ package_binary() {
 	local bin
 	bin=$(get_binary $2 $3)
 
-	ln -s $(dirname $(readlink -f $bin)) geckodriver-$1
+	cp $bin $dir
+	cp LICENSE $dir
+	cp README.md $dir
 
 	if [[ "$2" =~ "windows" ]]
 	then
-		zip geckodriver-$1-$target.zip geckodriver-$1/geckodriver
+		zip geckodriver-$1-$target.zip $dir
 		file geckodriver-$1-$target.zip
 	else
-		tar zcvf geckodriver-$1-$target.tar.gz geckodriver-$1/geckodriver
+		tar zcvf geckodriver-$1-$target.tar.gz $dir
 		file geckodriver-$1-$target.tar.gz
 	fi
 }
