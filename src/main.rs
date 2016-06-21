@@ -139,9 +139,9 @@ fn main() {
         }
     } else {
         match opts.verbosity {
+            0 => None,
             1 => Some(LogLevel::Debug),
-            2 => Some(LogLevel::Trace),
-            _ => None
+            _ => Some(LogLevel::Trace),
         }
     };
 
