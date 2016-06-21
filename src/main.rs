@@ -19,10 +19,10 @@ use std::net::{SocketAddr, IpAddr};
 use std::str::FromStr;
 use std::path::Path;
 
-use argparse::{ArgumentParser, StoreTrue, Store};
+use argparse::{ArgumentParser, IncrBy, StoreTrue, Store};
 use webdriver::server::start;
 
-use marionette::{MarionetteHandler, BrowserLauncher, MarionetteSettings, extension_routes};
+use marionette::{MarionetteHandler, BrowserLauncher, LogLevel, MarionetteSettings, extension_routes};
 
 macro_rules! try_opt {
     ($expr:expr, $err_type:expr, $err_msg:expr) => ({
@@ -41,7 +41,8 @@ struct Options {
     webdriver_port: u16,
     marionette_port: u16,
     connect_existing: bool,
-    e10s: bool
+    e10s: bool,
+    verbosity: u8,
 }
 
 
@@ -52,12 +53,13 @@ fn parse_args() -> Options {
         webdriver_port: 4444u16,
         marionette_port: 2828u16,
         connect_existing: false,
-        e10s: false
+        e10s: false,
+        verbosity: 0,
     };
 
     {
         let mut parser = ArgumentParser::new();
-        parser.set_description("WebDriver to marionette proxy.");
+        parser.set_description("WebDriver to Marionette proxy.");
         parser.refer(&mut opts.binary)
             .add_option(&["-b", "--binary"], Store,
                         "Path to the Firefox binary");
@@ -76,6 +78,10 @@ fn parse_args() -> Options {
         parser.refer(&mut opts.e10s)
             .add_option(&["--e10s"], StoreTrue,
                         "Load Firefox with an e10s profile");
+        parser.refer(&mut opts.verbosity)
+            .add_option(&["-v"], IncrBy(1),
+            "Increase verbosity of output to include debug messages with -v, \
+            and trace messages with -vv");
         parser.parse_args_or_exit();
     }
 
@@ -83,6 +89,7 @@ fn parse_args() -> Options {
         println!("Must supply a binary path or --connect-existing\n");
         exit(1)
     }
+
     opts
 }
 
@@ -100,17 +107,30 @@ fn main() {
         }
         );
 
+    // overrides defaults in Gecko
+    // which are info for optimised builds
+    // and debug for debug builds
+    let log_level = if opts.verbosity == 1 {
+        Some(LogLevel::Debug)
+    } else if opts.verbosity >= 2 {
+        Some(LogLevel::Trace)
+    } else {
+        None
+    };
+
+    // TODO: what if binary isn't a valid path?
     let launcher = if opts.connect_existing {
         BrowserLauncher::None
     } else {
         BrowserLauncher::BinaryLauncher(Path::new(&opts.binary).to_path_buf())
     };
 
-    let settings = MarionetteSettings::new(opts.marionette_port,
-                                           launcher,
-                                           opts.e10s);
-
-    //TODO: what if binary isn't a valid path?
+    let settings = MarionetteSettings {
+        port: opts.marionette_port,
+        launcher: launcher,
+        e10s: opts.e10s,
+        verbosity: log_level,
+    };
     start(addr, MarionetteHandler::new(settings), extension_routes());
 }
 

@@ -109,13 +109,12 @@ lazy_static! {
         ("toolkit.telemetry.rejected", Pref::new(true)),
     ];
 
-    pub static ref FIREFOX_REQUIRED_PREFERENCES: [(&'static str, Pref); 5] = [
+    pub static ref FIREFOX_REQUIRED_PREFERENCES: [(&'static str, Pref); 4] = [
         ("browser.tabs.warnOnClose", Pref::new(false)),
         ("browser.warnOnQuit", Pref::new(false)),
         // until bug 1238095 is fixed, we have to allow CPOWs
         ("dom.ipc.cpows.forbid-unsafe-from-browser", Pref::new(false)),
         ("marionette.defaultPrefs.enabled", Pref::new(true)),
-        ("marionette.logging", Pref::new(true)),
     ];
 }
 
@@ -230,20 +229,45 @@ pub enum BrowserLauncher {
     BinaryLauncher(PathBuf)
 }
 
-pub struct MarionetteSettings {
-    port: u16,
-    launcher: BrowserLauncher,
-    e10s: bool
+/// Logger levels from [Log.jsm]
+/// (https://developer.mozilla.org/en/docs/Mozilla/JavaScript_code_modules/Log.jsm).
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum LogLevel {
+    Fatal,
+    Error,
+    Warn,
+    Info,
+    Config,
+    Debug,
+    Trace,
 }
 
-impl MarionetteSettings {
-    pub fn new(port: u16, launcher: BrowserLauncher, e10s: bool) -> MarionetteSettings {
-        MarionetteSettings {
-            port: port,
-            launcher: launcher,
-            e10s: e10s
-        }
+impl ToString for LogLevel {
+    fn to_string(&self) -> String {
+        match *self {
+            LogLevel::Fatal => "FATAL",
+            LogLevel::Error => "ERROR",
+            LogLevel::Warn => "WARN",
+            LogLevel::Info => "INFO",
+            LogLevel::Config => "CONFIG",
+            LogLevel::Debug => "DEBUG",
+            LogLevel::Trace => "TRACE",
+        }.to_string()
     }
+}
+
+pub struct MarionetteSettings {
+    pub port: u16,
+    pub launcher: BrowserLauncher,
+
+    /// Enable or disable Electrolysis, or multi-processing, in Gecko.
+    pub e10s: bool,
+
+    /// Optionally increase Marionette's verbosity by providing a log
+    /// level. The Gecko default is LogLevel::Info for optimised
+    /// builds and LogLevel::Debug for debug builds.
+    pub verbosity: Option<LogLevel>,
 }
 
 pub struct MarionetteHandler {
@@ -252,6 +276,7 @@ pub struct MarionetteHandler {
     browser: Option<FirefoxRunner>,
     port: u16,
     e10s: bool,
+    verbosity: Option<LogLevel>,
 }
 
 impl MarionetteHandler {
@@ -261,7 +286,8 @@ impl MarionetteHandler {
             launcher: settings.launcher,
             browser: None,
             port: settings.port,
-            e10s: settings.e10s
+            e10s: settings.e10s,
+            verbosity: settings.verbosity,
         }
     }
 
@@ -311,8 +337,7 @@ impl MarionetteHandler {
     pub fn set_prefs(&self, profile: &mut Profile, custom_profile: bool)
                  -> Result<(), RunnerError> {
         let prefs = try!(profile.user_prefs());
-        prefs.insert("marionette.defaultPrefs.port",
-                     Pref::new(self.port as i64));
+        prefs.insert("marionette.defaultPrefs.port", Pref::new(self.port as i64));
 
         prefs.insert_slice(&FIREFOX_REQUIRED_PREFERENCES[..]);
         if !custom_profile {
@@ -323,6 +348,10 @@ impl MarionetteHandler {
                 prefs.insert_slice(&NON_E10S_PREFERENCES[..]);
             }
         };
+        if let Some(ref log_level) = self.verbosity {
+            prefs.insert("marionette.logging", Pref::new(log_level.to_string()));
+        };
+
         try!(prefs.write());
         Ok(())
     }
