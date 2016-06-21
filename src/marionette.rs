@@ -21,6 +21,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
+use std::str::FromStr;
 use webdriver::command::{WebDriverCommand, WebDriverMessage, Parameters,
                          WebDriverExtensionCommand};
 use webdriver::command::WebDriverCommand::{
@@ -246,14 +247,32 @@ pub enum LogLevel {
 impl ToString for LogLevel {
     fn to_string(&self) -> String {
         match *self {
-            LogLevel::Fatal => "FATAL",
-            LogLevel::Error => "ERROR",
-            LogLevel::Warn => "WARN",
-            LogLevel::Info => "INFO",
-            LogLevel::Config => "CONFIG",
-            LogLevel::Debug => "DEBUG",
-            LogLevel::Trace => "TRACE",
+            LogLevel::Fatal => "fatal",
+            LogLevel::Error => "error",
+            LogLevel::Warn => "warn",
+            LogLevel::Info => "info",
+            LogLevel::Config => "config",
+            LogLevel::Debug => "debug",
+            LogLevel::Trace => "trace",
         }.to_string()
+    }
+}
+
+impl FromStr for LogLevel {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<LogLevel, ()> {
+        let l: &str = &s.to_lowercase();
+        match l {
+            "fatal" => Ok(LogLevel::Fatal),
+            "error" => Ok(LogLevel::Error),
+            "warn" => Ok(LogLevel::Warn),
+            "info" => Ok(LogLevel::Info),
+            "config" => Ok(LogLevel::Config),
+            "debug" => Ok(LogLevel::Debug),
+            "trace" => Ok(LogLevel::Trace),
+            _ => Err(()),
+        }
     }
 }
 
@@ -267,7 +286,7 @@ pub struct MarionetteSettings {
     /// Optionally increase Marionette's verbosity by providing a log
     /// level. The Gecko default is LogLevel::Info for optimised
     /// builds and LogLevel::Debug for debug builds.
-    pub verbosity: Option<LogLevel>,
+    pub log_level: Option<LogLevel>,
 }
 
 pub struct MarionetteHandler {
@@ -276,7 +295,7 @@ pub struct MarionetteHandler {
     browser: Option<FirefoxRunner>,
     port: u16,
     e10s: bool,
-    verbosity: Option<LogLevel>,
+    log_level: Option<LogLevel>,
 }
 
 impl MarionetteHandler {
@@ -287,7 +306,7 @@ impl MarionetteHandler {
             browser: None,
             port: settings.port,
             e10s: settings.e10s,
-            verbosity: settings.verbosity,
+            log_level: settings.log_level,
         }
     }
 
@@ -348,8 +367,8 @@ impl MarionetteHandler {
                 prefs.insert_slice(&NON_E10S_PREFERENCES[..]);
             }
         };
-        if let Some(ref log_level) = self.verbosity {
-            prefs.insert("marionette.logging", Pref::new(log_level.to_string()));
+        if let Some(ref l) = self.log_level {
+            prefs.insert("marionette.logging", Pref::new(l.to_string()));
         };
 
         try!(prefs.write());
