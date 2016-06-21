@@ -45,7 +45,7 @@ macro_rules! println_stderr {
 macro_rules! err {
     ($($arg:tt)*) => { {
         let prog = env::args().next().unwrap();
-        println_stderr!("{}: error: {}", prog, $($arg)*);
+        println_stderr!("{}: error: {}", prog, format_args!($($arg)*));
         process::exit(64);
     } }
 }
@@ -135,7 +135,7 @@ fn main() {
     } else if opts.log_level.len() > 0 {
         match LogLevel::from_str(&opts.log_level) {
             Ok(l) => Some(l),
-            Err(_) => { err!(format_args!("unknown log level: {}", opts.log_level)); },
+            Err(_) => { err!("unknown log level: {}", opts.log_level); },
         }
     } else {
         match opts.verbosity {
