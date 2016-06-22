@@ -193,8 +193,13 @@ mod tests {
             required: required
         };
 
-        let handler = MarionetteHandler::new(
-            MarionetteSettings::new(2828u16, BrowserLauncher::None, false));
+        let settings = MarionetteSettings {
+            port: 2828,
+            launcher: BrowserLauncher::None,
+            e10s: false,
+            log_level: None,
+        };
+        let handler = MarionetteHandler::new(settings);
 
         let mut gecko_profile = handler.load_profile(&capabilities).unwrap().unwrap();
         handler.set_prefs(&mut gecko_profile, true).unwrap();
