@@ -852,7 +852,7 @@ impl MarionetteCommand {
                 let mut data = BTreeMap::new();
                 data.insert("id".to_string(), e.id.to_json());
                 data.insert("name".to_string(), x.to_json());
-                (Some("GetElementProperty"), Some(Ok(data)))
+                (Some("getElementProperty"), Some(Ok(data)))
             },
             GetCSSValue(ref e, ref x) => {
                 let mut data = BTreeMap::new();
