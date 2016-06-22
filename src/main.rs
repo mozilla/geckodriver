@@ -134,7 +134,7 @@ fn main() {
         err!("conflicting logging- and verbosity arguments");
     } else if opts.log_level.len() > 0 {
         match LogLevel::from_str(&opts.log_level) {
-            Ok(l) => Some(l),
+            Ok(level) => Some(level),
             Err(_) => { err!("unknown log level: {}", opts.log_level); },
         }
     } else {
