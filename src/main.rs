@@ -106,7 +106,7 @@ fn parse_args() -> Options {
             to include debug messages with -v, \
             and trace messages with -vv");
         parser.refer(&mut opts.version)
-            .add_option(&["-V", "--version"], StoreTrue,
+            .add_option(&["--version"], StoreTrue,
             "Show version and copying information.");
 
         parser.parse_args_or_exit();
