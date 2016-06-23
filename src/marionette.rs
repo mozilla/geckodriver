@@ -16,7 +16,7 @@ use std::io::ErrorKind;
 use std::io::Result as IoResult;
 use std::io::prelude::*;
 use std::io;
-use std::net::TcpStream;
+use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::thread::sleep;
@@ -277,7 +277,7 @@ impl FromStr for LogLevel {
 }
 
 pub struct MarionetteSettings {
-    pub port: u16,
+    pub port: Option<u16>,
     pub launcher: BrowserLauncher,
 
     /// Enable or disable Electrolysis, or multi-processing, in Gecko.
@@ -293,7 +293,7 @@ pub struct MarionetteHandler {
     connection: Mutex<Option<MarionetteConnection>>,
     launcher: BrowserLauncher,
     browser: Option<FirefoxRunner>,
-    port: u16,
+    port: Option<u16>,
     e10s: bool,
     log_level: Option<LogLevel>,
 }
@@ -315,7 +315,12 @@ impl MarionetteHandler {
         debug!("create_connection");
         let profile = try!(self.load_profile(capabilities));
         let args = try!(self.load_browser_args(capabilities));
-        match self.start_browser(profile, args) {
+        let port = match self.port {
+            Some(x) => x,
+            None => try!(MarionetteConnection::get_free_port())
+        };
+        info!("Using port {} for marionette connection", port);
+        match self.start_browser(port, profile, args) {
             Err(e) => {
                 return Err(WebDriverError::new(ErrorStatus::UnknownError,
                                                e.description().to_owned()));
@@ -323,7 +328,7 @@ impl MarionetteHandler {
             Ok(_) => {}
         }
         debug!("Creating connection");
-        let mut connection = MarionetteConnection::new(self.port, session_id.clone());
+        let mut connection = MarionetteConnection::new(port, session_id.clone());
         debug!("Starting marionette connection");
         try!(connection.connect());
         debug!("Marionette connection started");
@@ -331,7 +336,7 @@ impl MarionetteHandler {
         Ok(())
     }
 
-    fn start_browser(&mut self, profile: Option<Profile>, args: Option<Vec<String>>) -> Result<(), RunnerError> {
+    fn start_browser(&mut self, port: u16, profile: Option<Profile>, args: Option<Vec<String>>) -> Result<(), RunnerError> {
         let custom_profile = profile.is_some();
 
         match self.launcher {
@@ -340,7 +345,7 @@ impl MarionetteHandler {
                 if let Some(cmd_args) = args {
                     runner.args().extend(cmd_args);
                 };
-                try!(self.set_prefs(&mut runner.profile, custom_profile));
+                try!(self.set_prefs(port, &mut runner.profile, custom_profile));
                 try!(runner.start());
 
                 self.browser = Some(runner);
@@ -353,10 +358,10 @@ impl MarionetteHandler {
         Ok(())
     }
 
-    pub fn set_prefs(&self, profile: &mut Profile, custom_profile: bool)
+    pub fn set_prefs(&self, port: u16, profile: &mut Profile, custom_profile: bool)
                  -> Result<(), RunnerError> {
         let prefs = try!(profile.user_prefs());
-        prefs.insert("marionette.defaultPrefs.port", Pref::new(self.port as i64));
+        prefs.insert("marionette.defaultPrefs.port", Pref::new(port as i64));
 
         prefs.insert_slice(&FIREFOX_REQUIRED_PREFERENCES[..]);
         if !custom_profile {
@@ -1098,6 +1103,12 @@ impl MarionetteConnection {
             stream: None,
             session: MarionetteSession::new(session_id)
         }
+    }
+
+    pub fn get_free_port() -> IoResult<u16> {
+        TcpListener::bind(&("localhost", 0))
+            .and_then(|stream| stream.local_addr())
+            .map(|x| x.port())
     }
 
     pub fn connect(&mut self) -> WebDriverResult<()> {
