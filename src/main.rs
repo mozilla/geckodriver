@@ -33,12 +33,6 @@ macro_rules! try_opt {
     })
 }
 
-// Include git commit hash and worktree status; contents are like
-//   const COMMIT_HASH: Option<&'static str> = Some("c31a366");
-//   const WORKTREE_CLEAN: Option<bool> = Some(false);
-// with `None` if running git failed, e.g. if it is not installed.
-include!(concat!(env!("OUT_DIR"), "/git_info.rs"));
-
 mod marionette;
 
 type ProgramResult = std::result::Result<(), String>;
@@ -117,18 +111,13 @@ fn parse_args() -> Options {
 
 fn print_version() {
     let version = option_env!("CARGO_PKG_VERSION").unwrap_or("unknown");
-    let hash = COMMIT_HASH.unwrap_or("git commit unavailable");
-    let clean = match WORKTREE_CLEAN {
-        Some(false) => " worktree dirty",
-        _ => "",
-    };
 
-    println!(r#"geckodriver v{} ({}{})
+    println!(r#"geckodriver v{}
 https://github.com/mozilla/geckodriver
 
 This program is subject to the terms of the Mozilla Public License 2.0.
 You can obtain a copy of the license at https://mozilla.org/MPL/2.0/."#,
-             version, hash, clean);
+             version);
 }
 
 fn print_usage(reason: &str) {
