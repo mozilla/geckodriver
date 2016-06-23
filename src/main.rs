@@ -201,11 +201,7 @@ fn main() {
         },
     };
 
-    // flush standard output before exit
     std::io::stdout().flush().unwrap();
-
-    // terminates process without unwinding the stack,
-    // so please take necessary cleanup steps before arriving here
     std::process::exit(exit_code as i32);
 }
 
