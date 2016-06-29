@@ -29,6 +29,8 @@ matrix:
           - gcc-mingw-w64-x86-64
           - binutils-mingw-w64-x86-64
           - libbz2-dev
+    - os: osx
+      env: TARGET=x86_64-apple-darwin
 
 install:
   - export PATH="$PATH:$HOME/.cargo/bin"
