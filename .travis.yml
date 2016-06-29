@@ -2,14 +2,16 @@ language: generic
 
 matrix:
   include:
-    - env: TARGET=armv7-unknown-linux-gnueabihf
+    - os: linux
+      env: TARGET=armv7-unknown-linux-gnueabihf
       addons:
         apt:
           packages: &armhf
           - gcc-arm-linux-gnueabihf
           - libc6-armhf-cross
           - libc6-dev-armhf-cross
-    - env: TARGET=x86_64-unknown-linux-musl
+    - os: linux
+      env: TARGET=x86_64-unknown-linux-musl
       dist: trusty
       sudo: required
       addons:
@@ -17,7 +19,8 @@ matrix:
           packages:
           - musl-tools
           - libbz2-dev
-    - env: TARGET=x86_64-pc-windows-gnu
+    - os: linux
+      env: TARGET=x86_64-pc-windows-gnu
       dist: trusty
       addons:
         apt:
