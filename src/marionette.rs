@@ -334,7 +334,8 @@ impl MarionetteHandler {
             } else {
                 return Err(WebDriverError::new(ErrorStatus::UnknownError,
                                                "Expected browser binary location, \
-                                               but no 'firefox_binary' capability provided \
+                                               but unable to find binary in default location, \
+                                               no 'firefox_binary' capability provided, \
                                                and no binary flag set on the command line"));
             }
         };
