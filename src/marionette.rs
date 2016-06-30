@@ -431,14 +431,14 @@ impl MarionetteHandler {
         try!(unzip_buffer(profile_zip,
                           profile.temp_dir.as_ref().expect("Profile doesn't have a path").path()));
 
-        // TODO(jgraham): Stop mozprofile erroring if user.js already exists
         Ok(Some(profile))
     }
 
     pub fn load_browser_args(&self, capabilities: &NewSessionParameters) -> WebDriverResult<Option<Vec<String>>> {
         if let Some(args_json) = capabilities.get("firefox_args") {
-            let args_array = try!(args_json.as_array().ok_or(
-                WebDriverError::new(ErrorStatus::UnknownError, "Arguments was not an array")));
+            let args_array = try!(args_json.as_array()
+                                  .ok_or(WebDriverError::new(ErrorStatus::UnknownError,
+                                                             "Arguments was not an array")));
             let args = try!(args_array
                             .iter()
                             .map(|x| x.as_string().map(|x| x.to_owned()))
