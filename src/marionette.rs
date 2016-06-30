@@ -54,8 +54,7 @@ use webdriver::server::{WebDriverHandler, Session};
 use webdriver::httpapi::{WebDriverExtensionRoute};
 use zip;
 
-#[allow(dead_code)] pub const DEFAULT_HOST: &'static str = "localhost";
-#[allow(dead_code)] pub const DEFAULT_PORT: u16 = 2828;
+const DEFAULT_HOST: &'static str = "localhost";
 
 lazy_static! {
     pub static ref E10S_PREFERENCES: [(&'static str, Pref); 1] = [
