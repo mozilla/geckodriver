@@ -188,7 +188,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use marionette::{MarionetteSettings, MarionetteHandler};
+    use marionette::{MarionetteSettings, MarionetteHandler, DEFAULT_PORT};
     use webdriver::command::NewSessionParameters;
     use rustc_serialize::json::Json;
     use std::fs::File;
@@ -227,7 +227,7 @@ mod tests {
         let handler = MarionetteHandler::new(settings);
 
         let mut gecko_profile = handler.load_profile(&capabilities).unwrap().unwrap();
-        handler.set_prefs(marionette::DEFAULT_PORT, &mut gecko_profile, true).unwrap();
+        handler.set_prefs(DEFAULT_PORT, &mut gecko_profile, true).unwrap();
 
         let prefs = gecko_profile.user_prefs().unwrap();
 
