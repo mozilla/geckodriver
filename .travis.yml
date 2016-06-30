@@ -53,9 +53,10 @@ deploy:
   skip_cleanup: true
   file:
     - "geckodriver-$TRAVIS_TAG.tar.gz"
-    - "geckodriver-$TRAVIS_TAG-arm7hf.zip"
-    - "geckodriver-$TRAVIS_TAG-win64.zip"
+    - "geckodriver-$TRAVIS_TAG-arm7hf.tar.gz"
     - "geckodriver-$TRAVIS_TAG-linux64.tar.gz"
+    - "geckodriver-$TRAVIS-osx.tar.gz"
+    - "geckodriver-$TRAVIS_TAG-win64.zip"
   on:
     tags: true
     repo: mozilla/geckodriver

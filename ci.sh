@@ -66,7 +66,7 @@ cargo_build() {
 
 # Run current crate's tests if the current system supports it.
 cargo_test() {
-    if echo "$1" | grep -E "(i686|x86_64)-unknown-linux-(gnu|musl)"
+    if echo "$1" | grep -E "(i686|x86_64)-unknown-linux-(gnu|musl)|darwin"
     then
         cargo test --target $1
     fi
