@@ -551,9 +551,9 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
             }
         }
         if let Some(ref mut runner) = self.browser {
-            debug!("Stopping browser");
+            debug!("Stopping browser process");
             if runner.stop().is_err() {
-                error!("Failed to kill browser");
+                error!("Failed to kill browser process");
             };
         }
         self.connection = Mutex::new(None);
