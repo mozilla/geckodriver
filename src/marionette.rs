@@ -477,7 +477,7 @@ fn unzip_buffer(buf: &[u8], dest_dir: &Path) -> WebDriverResult<()> {
                 };
                 if let Some(dir) = create_dir {
                     if !dir.exists() {
-                        debug!("Creating directory tree {}", dir.to_string_lossy());
+                        debug!("Creating profile directory tree {}", dir.to_string_lossy());
                         try!(fs::create_dir_all(dir));
                     }
                 }
