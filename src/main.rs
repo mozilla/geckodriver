@@ -196,8 +196,6 @@ mod tests {
     use mozprofile::preferences::Pref;
     use std::io::Read;
 
-    const MARIONETTE_DEFAULT_PORT: u16 = 2828;
-
     #[test]
     fn test_profile() {
         let mut profile_data = Vec::with_capacity(1024);
@@ -229,7 +227,7 @@ mod tests {
         let handler = MarionetteHandler::new(settings);
 
         let mut gecko_profile = handler.load_profile(&capabilities).unwrap().unwrap();
-        handler.set_prefs(MARIONETTE_DEFAULT_PORT, &mut gecko_profile, true).unwrap();
+        handler.set_prefs(marionette::DEFAULT_PORT, &mut gecko_profile, true).unwrap();
 
         let prefs = gecko_profile.user_prefs().unwrap();
 
