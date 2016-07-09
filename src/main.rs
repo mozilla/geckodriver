@@ -72,36 +72,40 @@ fn parse_args() -> Options {
         parser.set_description("WebDriver to Marionette proxy.");
 
         parser.refer(&mut opts.binary)
-            .add_option(&["-b", "--binary"], StoreOption,
+            .add_option(&["-b", "--binary"],
+                        StoreOption,
                         "Path to the Firefox binary");
         parser.refer(&mut opts.webdriver_host)
-            .add_option(&["--webdriver-host"], Store,
+            .add_option(&["--webdriver-host"],
+                        Store,
                         "Host to run webdriver server on");
         parser.refer(&mut opts.webdriver_port)
-            .add_option(&["--webdriver-port"], Store,
-                        "Port to run webdriver on");
+            .add_option(&["--webdriver-port"], Store, "Port to run webdriver on");
         parser.refer(&mut opts.marionette_port)
-            .add_option(&["--marionette-port"], StoreOption,
+            .add_option(&["--marionette-port"],
+                        StoreOption,
                         "Port to run marionette on");
         parser.refer(&mut opts.connect_existing)
-            .add_option(&["--connect-existing"], StoreTrue,
+            .add_option(&["--connect-existing"],
+                        StoreTrue,
                         "Connect to an existing firefox process");
         parser.refer(&mut opts.e10s)
-            .add_option(&["--e10s"], StoreTrue,
-                        "Load Firefox with an e10s profile");
+            .add_option(&["--e10s"], StoreTrue, "Load Firefox with an e10s profile");
         parser.refer(&mut opts.log_level)
-            .add_option(&["--log"], Store,
-            "Desired verbosity level of Gecko \
-            (fatal, error, warn, info, config, debug, trace)")
+            .add_option(&["--log"],
+                        Store,
+                        "Desired verbosity level of Gecko (fatal, error, warn, info, config, \
+                         debug, trace)")
             .metavar("LEVEL");
         parser.refer(&mut opts.verbosity)
-            .add_option(&["-v"], IncrBy(1),
-            "Shorthand to increase verbosity of output \
-            to include debug messages with -v, \
-            and trace messages with -vv");
+            .add_option(&["-v"],
+                        IncrBy(1),
+                        "Shorthand to increase verbosity of output to include debug messages \
+                         with -v, and trace messages with -vv");
         parser.refer(&mut opts.version)
-            .add_option(&["--version"], StoreTrue,
-            "Show version and copying information.");
+            .add_option(&["--version"],
+                        StoreTrue,
+                        "Show version and copying information.");
 
         parser.parse_args_or_exit();
     }
@@ -130,7 +134,7 @@ fn run() -> ProgramResult {
 
     if opts.version {
         print_version();
-        return Ok(())
+        return Ok(());
     }
 
     let host = &opts.webdriver_host[..];
@@ -144,11 +148,13 @@ fn run() -> ProgramResult {
     // which are info for optimised builds
     // and debug for debug builds
     let log_level = if opts.log_level.len() > 0 && opts.verbosity > 0 {
-        return Err((ExitCode::Usage, "conflicting logging- and verbosity arguments".to_owned()))
+        return Err((ExitCode::Usage, "conflicting logging- and verbosity arguments".to_owned()));
     } else if opts.log_level.len() > 0 {
         match LogLevel::from_str(&opts.log_level) {
             Ok(level) => Some(level),
-            Err(_) => return Err((ExitCode::Usage, format!("unknown log level: {}", opts.log_level))),
+            Err(_) => {
+                return Err((ExitCode::Usage, format!("unknown log level: {}", opts.log_level)))
+            }
         }
     } else {
         match opts.verbosity {
@@ -163,7 +169,7 @@ fn run() -> ProgramResult {
         binary: opts.binary.map(|x| PathBuf::from(x)),
         connect_existing: opts.connect_existing,
         e10s: opts.e10s,
-        log_level: log_level
+        log_level: log_level,
     };
     start(addr, MarionetteHandler::new(settings), extension_routes());
 
@@ -178,7 +184,7 @@ fn main() {
         Err((exit_code, reason)) => {
             print_usage(&reason.to_string());
             exit_code
-        },
+        }
     };
 
     std::io::stdout().flush().unwrap();
@@ -207,7 +213,7 @@ mod tests {
             char_set: CharacterSet::Standard,
             newline: Newline::LF,
             pad: true,
-            line_length: None
+            line_length: None,
         };
         let encoded_profile = Json::String(profile_data.to_base64(base64_config));
 
@@ -216,7 +222,7 @@ mod tests {
         required.insert("firefox_profile".into(), encoded_profile);
         let capabilities = NewSessionParameters {
             desired: desired,
-            required: required
+            required: required,
         };
 
         let settings = MarionetteSettings {
@@ -233,7 +239,7 @@ mod tests {
 
         let prefs = gecko_profile.user_prefs().unwrap();
 
-        println!("{:?}",prefs.prefs);
+        println!("{:?}", prefs.prefs);
 
         assert_eq!(prefs.get("startup.homepage_welcome_url"),
                    Some(&Pref::new("data:text/html,PASS")));
