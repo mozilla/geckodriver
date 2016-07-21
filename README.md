@@ -76,6 +76,12 @@ contain any of the following fields:
           to use as the profile for the Firefox instance.
           This may be used to e.g. install extensions or custom certificates.
     </tr>
+    <tr>
+        <td><code>prefs</code>
+        <td>Object
+        <td>
+        <td>Map of preference name to preference value.
+    </tr>
 </table>
 
 ## Building
