@@ -36,28 +36,29 @@ the more bug fixes and features.
 
 ## Firefox capabilities
 
-**Note**: The names of these capabilities will change in a future release to better match
-the precedent set by ChromeDriver.
-
-geckodriver supports a couple of non-standard capabilities
-to customise and configure a Firefox session:
+geckodriver supports a capability named `firefoxOptions` which takes
+Firefox-specific preference values. This must be a dictionary and may
+contain any of the following fields:
 
 <dl>
- <dt><code>firefox_binary</code>
- <dd>Set to full path of the Firefox binary,
+ <dt><code>binary</code>
+ <dd>String containing the full path of the Firefox binary,
   e.g. <i>/usr/bin/firefox</i> or <i>/Applications/Firefox.app/Contents/MacOS/firefox</i>,
   to select which custom browser binary to use.
   If left undefined geckodriver will attempt
   to deduce the default location of Firefox
   on the current system.
 
- <dt><code>firefox_profile</code>
- <dd>For each session, geckodriver creates a new temporary profile by default.
-  To set custom preferences or use an add-on/extension,
-  you may want to provide a custom profile.
-  A profile can be sent across the wire protocol
-  by setting this capability to its path
-  on the local filesystem.
+ <dt><code>args</code>
+ <dd>Array of strings to pass as options command line arguments to the
+ Firefox binary. These must include the leading `--`
+ e.g. `["--devtools"]`.
+
+ <dt><code>profile</code>
+ <dd>A string containing a base64-encoded zip of a profile directory
+ to use as the profile for the Firefox instance. This may be used to
+ e.g. install extensions or custom certificates. By default a fresh
+ blank profile is created for every session.
 </dl>
 
 ## Building
@@ -73,7 +74,7 @@ ensure you do a compilation with optimisations:
 Or if you want a non-optimised binary for debugging:
 
     % cargo build
- 
+
 ## Usage
 
 Usage steps are [documented on MDN](https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette/WebDriver),
