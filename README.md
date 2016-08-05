@@ -57,7 +57,9 @@ to customise and configure a Firefox session:
   you may want to provide a custom profile.
   A profile can be sent across the wire protocol
   by setting this capability to its path
-  on the local filesystem.
+  on the local filesystem. The previous behavior of 
+  accepting a profile directory that has been zipped
+  and base64-encoded is also supported.
 </dl>
 
 ## Building
