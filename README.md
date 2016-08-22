@@ -76,6 +76,19 @@ contain any of the following fields:
           to use as the profile for the Firefox instance.
           This may be used to e.g. install extensions or custom certificates.
     </tr>
+    <tr>
+        <td><code>logLevel</code>
+        <td>String
+        <td>
+        <td>Set the level of verbosity.
+          Available levels are <code>trace</code>,
+          <code>debug</code>, <code>config</code>,
+          <code>info</code>, <code>warn</code>,
+          <code>error</code>, and <code>fatal</code>.
+          The default is left up to Gecko,
+          which on optimised release builds is <code>info</code>,
+          and on non-optimised builds is <code>debug</code>.
+    </tr>
 </table>
 
 ## Building

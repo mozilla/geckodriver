@@ -127,12 +127,13 @@ fn run() -> ProgramResult {
         if matches.is_present("log_level") {
             LogLevel::from_str(matches.value_of("log_level").unwrap()).ok()
         } else {
-            match matches.occurrences_of("v") {
+            match matches.occurrences_of("verbosity") {
                 0 => None,
                 1 => Some(LogLevel::Debug),
                 _ => Some(LogLevel::Trace),
             }
         };
+    marionette::init_env_logger(&log_level);
 
     let settings = MarionetteSettings {
         port: marionette_port,
@@ -147,8 +148,6 @@ fn run() -> ProgramResult {
 }
 
 fn main() {
-    let _ = env_logger::init();
-
     let exit_code = match run() {
         Ok(_) => ExitCode::Ok,
         Err((exit_code, reason)) => {
