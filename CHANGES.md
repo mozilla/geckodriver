@@ -18,6 +18,9 @@ All notable changes to this program is documented in this file.
 ### Fixed
 - Corrected link to repository in Cargo metadata
 
+### Fixed
+- Verbosity shorthand flag `-v[v]` now works again, following the replacement of the argument parsing library in the previous release.
+
 ## 0.10.0 (2016-08-02)
 
 ### Changed
