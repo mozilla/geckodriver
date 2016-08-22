@@ -58,6 +58,16 @@ to customise and configure a Firefox session:
   A profile can be sent across the wire protocol
   by setting this capability to its path
   on the local filesystem.
+
+ <dt><code>firefox_log_level</code>
+ <dd>Set the level of verbosity.
+  Available levels are <code>trace</code>,
+  <code>debug</code>, <code>config</code>,
+  <code>info</code>, <code>warn</code>,
+  <code>error</code>, and <code>fatal</code>.
+  The default is left up to Gecko,
+  which on optimised release builds is <code>info</code>,
+  and on non-optimised builds is <code>debug</code>.
 </dl>
 
 ## Building

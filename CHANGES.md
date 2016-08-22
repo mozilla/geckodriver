@@ -4,6 +4,9 @@ All notable changes to this program is documented in this file.
 
 ## Unreleased
 
+### Added
+- Introduced a `firefox_log_level` capability to change the verbosity of geckodriver and Gecko. It overrides the flags used when launching the binary.
+
 ### Changed
 - Removed `--no-e10s` flag, and geckodriver will from now rely on the Firefox default multiprocessing settings (override using preferences)
 - Disable pop-up blocker in the default profile by @juangj

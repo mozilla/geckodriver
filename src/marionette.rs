@@ -1,3 +1,4 @@
+use env_logger;
 use hyper::method::Method;
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
@@ -8,6 +9,7 @@ use rustc_serialize::base64::FromBase64;
 use rustc_serialize::json::{Json, ToJson};
 use rustc_serialize::json;
 use std::collections::BTreeMap;
+use std::env;
 use std::error::Error;
 use std::fs;
 use std::io::BufWriter;
@@ -291,6 +293,20 @@ pub struct MarionetteHandler {
     log_level: Option<LogLevel>,
 }
 
+pub fn init_env_logger(log_level: &Option<LogLevel>) {
+    if let Some(ref level) = *log_level {
+        let v = match *level {
+            LogLevel::Fatal | LogLevel::Error => "error",
+            LogLevel::Warn => "warn",
+            LogLevel::Info => "info",
+            LogLevel::Config | LogLevel::Debug => "debug",
+            LogLevel::Trace => "trace",
+        };
+        env::set_var("RUST_LOG", v);
+    }
+    let _ = env_logger::init();
+}
+
 impl MarionetteHandler {
     pub fn new(settings: MarionetteSettings) -> MarionetteHandler {
         MarionetteHandler {
@@ -305,6 +321,8 @@ impl MarionetteHandler {
 
     fn create_connection(&mut self, session_id: &Option<String>,
                          capabilities: &NewSessionParameters) -> WebDriverResult<()> {
+        self.log_level = try!(self.load_log_level(capabilities));
+        init_env_logger(&self.log_level);
         let profile = try!(self.load_profile(capabilities));
         let args = try!(self.load_browser_args(capabilities));
         let port = match self.port {
@@ -393,6 +411,21 @@ impl MarionetteHandler {
         } else {
             Ok(firefox_default_path())
         }
+    }
+
+    pub fn load_log_level(&self, capabilities: &NewSessionParameters) -> WebDriverResult<Option<LogLevel>> {
+        let opt = capabilities.get("firefox_log_level");
+        if opt.is_none() {
+            return Ok(None);
+        }
+
+        let json = opt.unwrap();
+        let s = try!(json.as_string().ok_or(
+            WebDriverError::new(ErrorStatus::UnknownError, "Log level was not a string")));
+        let level = try!(LogLevel::from_str(s).ok().ok_or(
+            WebDriverError::new(ErrorStatus::UnknownError, "Log level is unknown")));
+
+        Ok(Some(level))
     }
 
     pub fn load_profile(&self, capabilities: &NewSessionParameters) -> WebDriverResult<Option<Profile>> {

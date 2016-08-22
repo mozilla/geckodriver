@@ -134,20 +134,7 @@ fn run() -> ProgramResult {
                 _ => Some(LogLevel::Trace),
             }
         };
-
-    if env::var_os("RUST_LOG").is_none() {
-        if let Some(ref level) = log_level {
-            let v = match *level {
-                LogLevel::Fatal | LogLevel::Error => "error",
-                LogLevel::Warn => "warn",
-                LogLevel::Info => "info",
-                LogLevel::Config | LogLevel::Debug => "debug",
-                LogLevel::Trace => "trace",
-            };
-            env::set_var("RUST_LOG", v);
-        }
-    }
-    let _ = env_logger::init();
+    marionette::init_env_logger(&log_level);
 
     let settings = MarionetteSettings {
         port: marionette_port,
