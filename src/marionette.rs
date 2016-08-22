@@ -1,3 +1,4 @@
+use env_logger;
 use hyper::method::Method;
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
@@ -8,6 +9,7 @@ use rustc_serialize::base64::FromBase64;
 use rustc_serialize::json::{Json, ToJson};
 use rustc_serialize::json;
 use std::collections::BTreeMap;
+use std::env;
 use std::error::Error;
 use std::fs;
 use std::io::BufWriter;
@@ -271,8 +273,8 @@ pub struct FirefoxOptions {
     pub binary: Option<PathBuf>,
     pub profile: Option<Profile>,
     pub args: Option<Vec<String>>,
+    pub log_level: Option<LogLevel>,
 }
-
 
 impl FirefoxOptions {
     pub fn from_capabilities(capabilities: &mut NewSessionParameters) -> WebDriverResult<FirefoxOptions> {
@@ -285,10 +287,12 @@ impl FirefoxOptions {
             let binary = try!(FirefoxOptions::load_binary(&firefox_options));
             let profile = try!(FirefoxOptions::load_profile(&firefox_options));
             let args = try!(FirefoxOptions::load_args(&firefox_options));
+            let log_level = try!(FirefoxOptions::load_log_level(&firefox_options));
             Ok(FirefoxOptions {
                 binary: binary,
                 profile: profile,
                 args: args,
+                log_level: log_level,
             })
         } else {
             Ok(Default::default())
@@ -347,6 +351,18 @@ impl FirefoxOptions {
             Ok(None)
         }
     }
+
+    fn load_log_level(options: &BTreeMap<String, Json>) -> WebDriverResult<Option<LogLevel>> {
+        if let Some(json) = options.get("logLevel") {
+            let s = try!(json.as_string()
+                .ok_or(WebDriverError::new(ErrorStatus::UnknownError, "Log level is not a string")));
+            let level = try!(LogLevel::from_str(s).ok()
+                .ok_or(WebDriverError::new(ErrorStatus::UnknownError, "Log level is unknown")));
+            Ok(Some(level))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 pub struct MarionetteSettings {
@@ -366,7 +382,7 @@ impl Default for MarionetteSettings {
             port: None,
             binary: None,
             connect_existing: false,
-            log_level: Some(LogLevel::Info),
+            log_level: None,
         }
     }
 }
@@ -375,6 +391,20 @@ pub struct MarionetteHandler {
     connection: Mutex<Option<MarionetteConnection>>,
     settings: MarionetteSettings,
     browser: Option<FirefoxRunner>,
+}
+
+pub fn init_env_logger(log_level: &Option<LogLevel>) {
+    if let Some(ref level) = *log_level {
+        let v = match *level {
+            LogLevel::Fatal | LogLevel::Error => "error",
+            LogLevel::Warn => "warn",
+            LogLevel::Info => "info",
+            LogLevel::Config | LogLevel::Debug => "debug",
+            LogLevel::Trace => "trace",
+        };
+        env::set_var("RUST_LOG", v);
+    }
+    let _ = env_logger::init();
 }
 
 impl MarionetteHandler {
@@ -388,9 +418,8 @@ impl MarionetteHandler {
 
     fn create_connection(&mut self, session_id: &Option<String>,
                          capabilities: &mut NewSessionParameters) -> WebDriverResult<()> {
-
         let options = try!(FirefoxOptions::from_capabilities(capabilities));
-
+        init_env_logger(&options.log_level);
         let port = self.settings.port.unwrap_or(try!(get_free_port()));
 
         if !self.settings.connect_existing {
