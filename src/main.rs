@@ -17,6 +17,7 @@ extern crate zip;
 use clap::{App, Arg};
 use marionette::{MarionetteHandler, LogLevel, MarionetteSettings, extension_routes};
 use std::borrow::ToOwned;
+use std::env;
 use std::io::Write;
 use std::net::{SocketAddr, IpAddr};
 use std::path::PathBuf;
@@ -134,6 +135,20 @@ fn run() -> ProgramResult {
             }
         };
 
+    if env::var_os("RUST_LOG").is_none() {
+        if let Some(ref level) = log_level {
+            let v = match *level {
+                LogLevel::Fatal | LogLevel::Error => "error",
+                LogLevel::Warn => "warn",
+                LogLevel::Info => "info",
+                LogLevel::Config | LogLevel::Debug => "debug",
+                LogLevel::Trace => "trace",
+            };
+            env::set_var("RUST_LOG", v);
+        }
+    }
+    let _ = env_logger::init();
+
     let settings = MarionetteSettings {
         port: marionette_port,
         binary: binary,
@@ -147,8 +162,6 @@ fn run() -> ProgramResult {
 }
 
 fn main() {
-    let _ = env_logger::init();
-
     let exit_code = match run() {
         Ok(_) => ExitCode::Ok,
         Err((exit_code, reason)) => {
