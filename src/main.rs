@@ -132,7 +132,7 @@ You can obtain a copy of the license at https://mozilla.org/MPL/2.0/.");
         if matches.is_present("log_level") {
             LogLevel::from_str(matches.value_of("log_level").unwrap()).ok()
         } else {
-            match matches.occurrences_of("v") {
+            match matches.occurrences_of("verbosity") {
                 0 => None,
                 1 => Some(LogLevel::Debug),
                 _ => Some(LogLevel::Trace),
