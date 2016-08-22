@@ -10,6 +10,7 @@ extern crate mozprofile;
 extern crate mozrunner;
 extern crate regex;
 extern crate rustc_serialize;
+extern crate time;
 #[macro_use]
 extern crate webdriver;
 extern crate zip;
@@ -128,16 +129,15 @@ You can obtain a copy of the license at https://mozilla.org/MPL/2.0/.");
     // overrides defaults in Gecko
     // which are info for optimised builds
     // and debug for debug builds
-    let log_level =
-        if matches.is_present("log_level") {
-            LogLevel::from_str(matches.value_of("log_level").unwrap()).ok()
-        } else {
-            match matches.occurrences_of("verbosity") {
-                0 => None,
-                1 => Some(LogLevel::Debug),
-                _ => Some(LogLevel::Trace),
-            }
-        };
+    let log_level = if matches.is_present("log_level") {
+        LogLevel::from_str(matches.value_of("log_level").unwrap()).ok()
+    } else {
+        match matches.occurrences_of("verbosity") {
+            0 => None,
+            1 => Some(LogLevel::Debug),
+            _ => Some(LogLevel::Trace),
+        }
+    };
 
     let settings = MarionetteSettings {
         port: marionette_port,
@@ -153,8 +153,6 @@ You can obtain a copy of the license at https://mozilla.org/MPL/2.0/.");
 }
 
 fn main() {
-    let _ = env_logger::init();
-
     let exit_code = match run() {
         Ok(_) => ExitCode::Ok,
         Err((exit_code, reason)) => {
