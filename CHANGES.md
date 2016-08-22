@@ -9,6 +9,9 @@ All notable changes to this program is documented in this file.
 - Removed `--no-e10s` flag, and geckodriver will from now rely on the Firefox default multiprocessing settings (override using preferences)
 - Disable pop-up blocker in the default profile by @juangj
 
+### Fixed
+- Verbosity shorthand flag `-v[v]` now works again, following the replacement of the argument parsing library in the previous release.
+
 ## 0.10.0 (2016-08-02)
 
 ### Changed
