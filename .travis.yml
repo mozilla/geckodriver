@@ -43,6 +43,16 @@ matrix:
         - TARGET=x86_64-apple-darwin
         - NAME=macos
         - EXT=tar.gz
+    - os: linux
+      env: TARGET=i686-pc-windows-gnu
+      dist: trusty
+      addons:
+        apt:
+          packages:
+          - gcc-mingw-w64
+          - gcc-mingw-w64-i686
+          - binutils-mingw-w64-i686
+          - libbz2-dev
 
 install:
   - export PATH="$PATH:$HOME/.cargo/bin"
