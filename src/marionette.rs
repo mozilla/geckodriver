@@ -491,17 +491,6 @@ pub struct MarionetteSettings {
     pub log_level: Option<LogLevel>,
 }
 
-impl Default for MarionetteSettings {
-    fn default() -> MarionetteSettings {
-        MarionetteSettings {
-            port: None,
-            binary: None,
-            connect_existing: false,
-            log_level: Some(LogLevel::Info),
-        }
-    }
-}
-
 pub struct MarionetteHandler {
     connection: Mutex<Option<MarionetteConnection>>,
     settings: MarionetteSettings,
