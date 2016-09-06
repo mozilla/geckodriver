@@ -22,6 +22,15 @@ use std::net::{SocketAddr, IpAddr};
 use std::path::PathBuf;
 use std::str::FromStr;
 
+macro_rules! prog {
+    () => (std::env::args().next().unwrap_or("geckodriver".to_owned()))
+}
+
+macro_rules! print_err {
+    ($fmt:expr) => (let _ = writeln!(&mut ::std::io::stderr(), "{}: {}", prog!(), $fmt));
+    ($($arg:tt)*) => (let _ = writeln!(&mut ::std::io::stderr(), "{}: {}", prog!(), format_args!($($arg)*)));
+}
+
 macro_rules! try_opt {
     ($expr:expr, $err_type:expr, $err_msg:expr) => ({
         match $expr {
@@ -87,11 +96,6 @@ fn app<'a, 'b>() -> App<'a, 'b> {
              .help("Prints version and copying information"))
 }
 
-fn print_err(reason: &str) {
-    let prog = std::env::args().next().unwrap_or("geckodriver".to_owned());
-    let _ = writeln!(&mut ::std::io::stderr(), "{}: error: {}", prog, reason);
-}
-
 fn run() -> ProgramResult {
     let matches = app().get_matches();
 
@@ -132,7 +136,7 @@ You can obtain a copy of the license at https://mozilla.org/MPL/2.0/.");
         if matches.is_present("log_level") {
             LogLevel::from_str(matches.value_of("log_level").unwrap()).ok()
         } else {
-            match matches.occurrences_of("v") {
+            match matches.occurrences_of("verbosity") {
                 0 => None,
                 1 => Some(LogLevel::Debug),
                 _ => Some(LogLevel::Trace),
@@ -147,9 +151,14 @@ You can obtain a copy of the license at https://mozilla.org/MPL/2.0/.");
     };
 
     let handler = MarionetteHandler::new(settings);
-    webdriver::server::start(addr, handler, extension_routes());
-
-    Ok(())
+    match webdriver::server::start(addr, handler, extension_routes()) {
+        Ok(listening) => {
+            print_err!("listening on {}", listening.socket);
+            Ok(())
+            
+        },
+        Err(_) => Err((ExitCode::Usage, "invalid host address".to_owned())),
+    }
 }
 
 fn main() {
@@ -158,7 +167,7 @@ fn main() {
     let exit_code = match run() {
         Ok(_) => ExitCode::Ok,
         Err((exit_code, reason)) => {
-            print_err(&reason.to_string());
+            print_err!(&reason);
             exit_code
         },
     };
