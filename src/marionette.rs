@@ -102,7 +102,7 @@ lazy_static! {
         ("security.warn_viewing_mixed.show_once", Pref::new(false)),
         ("signon.autofillForms", Pref::new(false)),
         ("signon.rememberSignons", Pref::new(false)),
-        ("startup.homepage_welcome_url", Pref::new("")),
+        ("startup.homepage_welcome_url", Pref::new("about:blank")),
         ("startup.homepage_welcome_url.additional", Pref::new("")),
         ("toolkit.networkmanager.disable", Pref::new(true)),
         ("toolkit.telemetry.enabled", Pref::new(false)),
