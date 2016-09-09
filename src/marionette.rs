@@ -103,7 +103,7 @@ lazy_static! {
         ("signon.autofillForms", Pref::new(false)),
         ("signon.rememberSignons", Pref::new(false)),
         ("startup.homepage_welcome_url", Pref::new("about:blank")),
-        ("startup.homepage_welcome_url.additional", Pref::new("")),
+        ("startup.homepage_welcome_url.additional", Pref::new("about:blank")),
         ("toolkit.networkmanager.disable", Pref::new(true)),
         ("toolkit.telemetry.enabled", Pref::new(false)),
         ("toolkit.telemetry.prompted", Pref::new(2)),
