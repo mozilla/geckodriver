@@ -129,12 +129,12 @@ impl Format for GeckoFormat {
     fn format(&self, io: &mut io::Write, record: &Record, _: &OwnedKeyValueList) -> io::Result<()> {
         let ts = format_ts(Local::now());
         let level = record.level().to_gecko();
-        let _ = try!(write!(io,
-                            "{}\t{}\t{}\t{}\n",
-                            ts,
-                            record.module(),
-                            level,
-                            record.msg()));
+        let _ = write!(io,
+                       "{}\t{}\t{}\t{}\n",
+                       ts,
+                       record.module(),
+                       level,
+                       record.msg())?;
         Ok(())
     }
 }
