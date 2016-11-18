@@ -1,4 +1,4 @@
-To help diagnose and fix your issue, please provide as many of
+To help diagnose and fix your issue, please provide as many as
 possible of the following items. Note that issues without any of this
 data may be closed as unreproducable:
 
