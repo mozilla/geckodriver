@@ -147,18 +147,18 @@ impl WebDriverExtensionRoute for GeckoExtensionRoute {
                 GeckoExtensionCommand::SetContext(parameters)
             },
             &GeckoExtensionRoute::XblAnonymousChildren => {
-                let element_id = try!(captures.name("elementId")
+                let element_id = captures.name("elementId")
                                       .ok_or(WebDriverError::new(
                                           ErrorStatus::InvalidArgument,
-                                          "Missing elementId parameter")));
+                                          "Missing elementId parameter"))?;
                 GeckoExtensionCommand::XblAnonymousChildren(element_id.into())
             },
             &GeckoExtensionRoute::XblAnonymousByAttribute => {
-                let element_id = try!(captures.name("elementId")
+                let element_id = captures.name("elementId")
                                       .ok_or(WebDriverError::new(
                                           ErrorStatus::InvalidArgument,
-                                          "Missing elementId parameter")));
-                let parameters: AttributeParameters = try!(Parameters::from_json(&body_data));
+                                          "Missing elementId parameter"))?;
+                let parameters: AttributeParameters = Parameters::from_json(&body_data)?;
                 GeckoExtensionCommand::XblAnonymousByAttribute(element_id.into(), parameters)
             }
         };
@@ -207,23 +207,23 @@ pub struct GeckoContextParameters {
 
 impl Parameters for GeckoContextParameters {
     fn from_json(body: &Json) -> WebDriverResult<GeckoContextParameters> {
-        let data = try!(body.as_object().ok_or(
+        let data = body.as_object().ok_or(
             WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Message body was not an object")));
-        let context_value = try!(data.get("context").ok_or(
+                                "Message body was not an object"))?;
+        let context_value = data.get("context").ok_or(
             WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Missing context key")));
-        let value = try!(context_value.as_string().ok_or(
+                                "Missing context key"))?;
+        let value = context_value.as_string().ok_or(
             WebDriverError::new(
                 ErrorStatus::InvalidArgument,
-                "context was not a string")));
-        let context = try!(match value {
+                "context was not a string"))?;
+        let context = match value {
             "chrome" => Ok(GeckoContext::Chrome),
             "content" => Ok(GeckoContext::Content),
             _ => Err(WebDriverError::new(ErrorStatus::InvalidArgument,
                                          format!("{} is not a valid context",
                                                  value)))
-        });
+        }?;
         Ok(GeckoContextParameters {
             context: context
         })
@@ -250,24 +250,24 @@ impl ToJson for GeckoContextParameters {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AttributeParameters {
     name: String,
-    value: String
+    value: String,
 }
 
 impl Parameters for AttributeParameters {
     fn from_json(body: &Json) -> WebDriverResult<AttributeParameters> {
-        let data = try!(body.as_object().ok_or(
-            WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Message body was not an object")));
-        let name = try!(try!(data.get("name").ok_or(
-            WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Missing 'name' parameter"))).as_string().
-                            ok_or(WebDriverError::new(ErrorStatus::InvalidArgument,
-                                                      "'name' parameter is not a string")));
-        let value = try!(try!(data.get("value").ok_or(
-            WebDriverError::new(ErrorStatus::InvalidArgument,
-                                "Missing 'value' parameter"))).as_string().
-                            ok_or(WebDriverError::new(ErrorStatus::InvalidArgument,
-                                                      "'value' parameter is not a string")));
+        let data = body.as_object()
+            .ok_or(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                       "Message body was not an object"))?;
+        let name = data.get("name")
+            .ok_or(WebDriverError::new(ErrorStatus::InvalidArgument, "Missing 'name' parameter"))?
+            .as_string()
+            .ok_or(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                       "'name' parameter is not a string"))?;
+        let value = data.get("value")
+            .ok_or(WebDriverError::new(ErrorStatus::InvalidArgument, "Missing 'value' parameter"))?
+            .as_string()
+            .ok_or(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                       "'value' parameter is not a string"))?;
         Ok(AttributeParameters {
             name: name.to_owned(),
             value: value.to_owned(),
@@ -329,52 +329,57 @@ impl MarionetteHandler {
         }
     }
 
-    fn create_connection(&mut self, session_id: &Option<String>,
-                         capabilities: &mut NewSessionParameters) -> WebDriverResult<()> {
-        let options = try!(FirefoxOptions::from_capabilities(capabilities));
+    fn create_connection(&mut self,
+                         session_id: &Option<String>,
+                         capabilities: &mut NewSessionParameters)
+                         -> WebDriverResult<()> {
+        let options = FirefoxOptions::from_capabilities(capabilities)?;
 
         self.current_log_level = options.log.level.clone().or(self.settings.log_level.clone());
         logging::init(&self.current_log_level);
 
-        let port = self.settings.port.unwrap_or(try!(get_free_port()));
+        let port = self.settings.port.unwrap_or(get_free_port()?);
         if !self.settings.connect_existing {
-            try!(self.start_browser(port, options));
+            self.start_browser(port, options)?;
         }
 
         let mut connection = MarionetteConnection::new(port, session_id.clone());
-        try!(connection.connect());
+        connection.connect()?;
         self.connection = Mutex::new(Some(connection));
 
         Ok(())
     }
 
     fn start_browser(&mut self, port: u16, mut options: FirefoxOptions) -> WebDriverResult<()> {
-        let binary = try!(self.binary_path(&mut options)
-                          .ok_or(WebDriverError::new(ErrorStatus::UnknownError,
-                                                     "Expected browser binary location, \
-                                                      but unable to find binary in default location, \
-                                                      no 'moz:firefoxOptions.binary' capability provided, \
-                                                      and no binary flag set on the command line")));
+        let binary = self.binary_path(&mut options)
+            .ok_or(WebDriverError::new(ErrorStatus::UnknownError,
+                                       "Expected browser binary location, but unable to find \
+                                        binary in default location, no \
+                                        'moz:firefoxOptions.binary' capability provided, and no \
+                                        binary flag set on the command line"))?;
 
         let custom_profile = options.profile.is_some();
 
-        let mut runner = try!(FirefoxRunner::new(&binary, options.profile.take())
-                              .map_err(|e| WebDriverError::new(ErrorStatus::UnknownError,
-                                                               e.description().to_owned())));
+        let mut runner =
+            FirefoxRunner::new(&binary, options.profile.take()).map_err(|e| {
+                    WebDriverError::new(ErrorStatus::UnknownError, e.description().to_owned())
+                })?;
         if let Some(args) = options.args.take() {
             runner.args().extend(args);
         };
 
-        try!(self.set_prefs(port, &mut runner.profile, custom_profile, options.prefs)
-             .map_err(|e| WebDriverError::new(ErrorStatus::UnknownError,
-                                              format!("Failed to set preferences:\n{}",
-                                                      e.description()))));
+        self.set_prefs(port, &mut runner.profile, custom_profile, options.prefs)
+            .map_err(|e| {
+                WebDriverError::new(ErrorStatus::UnknownError,
+                                    format!("Failed to set preferences:\n{}", e.description()))
+            })?;
 
         info!("Starting browser {}", binary.to_string_lossy());
-        try!(runner.start()
-             .map_err(|e| WebDriverError::new(ErrorStatus::UnknownError,
-                                              format!("Failed to start browser:\n{}",
-                                                      e.description()))));
+        runner.start()
+            .map_err(|e| {
+                WebDriverError::new(ErrorStatus::UnknownError,
+                                    format!("Failed to start browser:\n{}", e.description()))
+            })?;
 
         self.browser = Some(runner);
 
@@ -382,17 +387,23 @@ impl MarionetteHandler {
     }
 
     fn binary_path(&self, options: &mut FirefoxOptions) -> Option<PathBuf> {
-        options.binary.take()
+        options.binary
+            .take()
             .or_else(|| self.settings.binary.as_ref().map(|x| x.clone()))
             .or_else(|| firefox_default_path())
     }
 
-    pub fn set_prefs(&self, port: u16, profile: &mut Profile, custom_profile: bool,
+    pub fn set_prefs(&self,
+                     port: u16,
+                     profile: &mut Profile,
+                     custom_profile: bool,
                      extra_prefs: Vec<(String, Pref)>)
-                 -> WebDriverResult<()> {
-        let prefs = try!(profile.user_prefs()
-                         .map_err(|_| WebDriverError::new(ErrorStatus::UnknownError,
-                                                          "Unable to read profile preferences file")));
+                     -> WebDriverResult<()> {
+        let prefs = profile.user_prefs()
+            .map_err(|_| {
+                WebDriverError::new(ErrorStatus::UnknownError,
+                                    "Unable to read profile preferences file")
+            })?;
 
         prefs.insert("marionette.defaultPrefs.port", Pref::new(port as i64));
 
@@ -407,8 +418,9 @@ impl MarionetteHandler {
             prefs.insert("marionette.logging", Pref::new(level.to_string()));
         };
 
-        prefs.write().map_err(|_| WebDriverError::new(ErrorStatus::UnknownError,
-                                                      "Unable to write Firefox profile"))
+        prefs.write().map_err(|_| {
+            WebDriverError::new(ErrorStatus::UnknownError, "Unable to write Firefox profile")
+        })
     }
 }
 
@@ -438,7 +450,7 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
                 }
             }
             if let Some(capabilities) = new_capabilities {
-                try!(self.create_connection(&msg.session_id, capabilities));
+                self.create_connection(&msg.session_id, capabilities)?;
             }
         }
 
@@ -552,7 +564,7 @@ impl MarionetteSession {
             return Err(WebDriverError::new(status, error.message));
         }
 
-        try!(self.update(msg, &resp));
+        self.update(msg, &resp)?;
 
         Ok(match msg.command {
             //Everything that doesn't have a response value
@@ -644,19 +656,19 @@ impl MarionetteSession {
                 WebDriverResponse::ElementRect(ElementRectResponse::new(x, y, width, height))
             },
             GetCookies => {
-                let cookies = try!(self.process_cookies(&resp.result));
+                let cookies = self.process_cookies(&resp.result)?;
                 WebDriverResponse::Cookie(CookieResponse::new(cookies))
             },
             GetCookie(ref name) => {
-                let mut cookies = try!(self.process_cookies(&resp.result));
+                let mut cookies = self.process_cookies(&resp.result)?;
                 cookies.retain(|x| x.name == *name);
                 WebDriverResponse::Cookie(CookieResponse::new(cookies))
             }
             FindElement(_) | FindElementElement(_, _) => {
-                let element = try!(self.to_web_element(
+                let element = self.to_web_element(
                     try_opt!(resp.result.find("value"),
                              ErrorStatus::UnknownError,
-                             "Failed to find value field")));
+                             "Failed to find value field"))?;
                 WebDriverResponse::Generic(ValueResponse::new(element.to_json()))
             },
             FindElements(_) | FindElementElements(_, _) => {
@@ -671,10 +683,10 @@ impl MarionetteSession {
                     Json::Array(elements.iter().map(|x| {x.to_json()}).collect())))
             },
             GetActiveElement => {
-                let element = try!(self.to_web_element(
+                let element = self.to_web_element(
                     try_opt!(resp.result.find("value"),
                              ErrorStatus::UnknownError,
-                             "Failed to find value field")));
+                             "Failed to find value field"))?;
                 WebDriverResponse::Generic(ValueResponse::new(element.to_json()))
             },
             NewSession(_) => {
@@ -714,14 +726,14 @@ impl MarionetteSession {
                     &GeckoExtensionCommand::XblAnonymousChildren(_) => {
                         let els_vec = try_opt!(resp.result.as_array(),
                             ErrorStatus::UnknownError, "Failed to interpret body as array");
-                        let els = try!(els_vec.iter().map(|x| self.to_web_element(x))
-                            .collect::<Result<Vec<_>, _>>());
+                        let els = els_vec.iter().map(|x| self.to_web_element(x))
+                            .collect::<Result<Vec<_>, _>>()?;
                         WebDriverResponse::Generic(ValueResponse::new(
                             Json::Array(els.iter().map(|el| el.to_json()).collect())))
                     },
                     &GeckoExtensionCommand::XblAnonymousByAttribute(_, _) => {
-                        let el = try!(self.to_web_element(try_opt!(resp.result.find("value"),
-                            ErrorStatus::UnknownError, "Failed to find value field")));
+                        let el = self.to_web_element(try_opt!(resp.result.find("value"),
+                            ErrorStatus::UnknownError, "Failed to find value field"))?;
                         WebDriverResponse::Generic(ValueResponse::new(el.to_json()))
                     }
                 }
@@ -733,51 +745,49 @@ impl MarionetteSession {
         let value = try_opt!(json_data.as_array(),
                              ErrorStatus::UnknownError,
                              "Failed to interpret value as array");
-        value.iter().map(|x| {
-            let name = try_opt!(
-                try_opt!(x.find("name"),
-                         ErrorStatus::UnknownError,
-                         "Failed to find name field").as_string(),
-                ErrorStatus::UnknownError,
-                "Failed to interpret name as string").to_string();
-            let value = try_opt!(
-                try_opt!(x.find("value"),
-                         ErrorStatus::UnknownError,
-                         "Failed to find value field").as_string(),
-                ErrorStatus::UnknownError,
-                "Failed to interpret value as string").to_string();
-            let path = try!(
-                Nullable::from_json(x.find("path").unwrap_or(&Json::Null),
-                                    |x| {
-                                        Ok((try_opt!(x.as_string(),
-                                                     ErrorStatus::UnknownError,
-                                                     "Failed to interpret path as String")).to_string())
-                                    }));
-            let domain = try!(
-                Nullable::from_json(x.find("domain").unwrap_or(&Json::Null),
-                                    |x| {
-                                        Ok((try_opt!(x.as_string(),
-                                                     ErrorStatus::UnknownError,
-                                                     "Failed to interpret domain as String")).to_string())
-                                    }));
-            let expiry = try!(
-                Nullable::from_json(x.find("expiry").unwrap_or(&Json::Null),
-                                    |x| {
-                                        Ok(Date::new((try_opt!(
-                                            x.as_u64(),
-                                            ErrorStatus::UnknownError,
-                                            "Failed to interpret domain as String"))))
-                                    }));
-            let secure = try_opt!(
-                x.find("secure").map_or(Some(false), |x| x.as_boolean()),
-                ErrorStatus::UnknownError,
-                "Failed to interpret secure as boolean");
-            let http_only = try_opt!(
-                x.find("httpOnly").map_or(Some(false), |x| x.as_boolean()),
-                ErrorStatus::UnknownError,
-                "Failed to interpret httpOnly as boolean");
-            Ok(Cookie::new(name, value, path, domain, expiry, secure, http_only))
-        }).collect::<Result<Vec<_>, _>>()
+        value.iter()
+            .map(|x| {
+                let name = try_opt!(try_opt!(x.find("name"),
+                                             ErrorStatus::UnknownError,
+                                             "Failed to find name field")
+                                        .as_string(),
+                                    ErrorStatus::UnknownError,
+                                    "Failed to interpret name as string")
+                    .to_string();
+                let value = try_opt!(try_opt!(x.find("value"),
+                                              ErrorStatus::UnknownError,
+                                              "Failed to find value field")
+                                         .as_string(),
+                                     ErrorStatus::UnknownError,
+                                     "Failed to interpret value as string")
+                    .to_string();
+                let path = Nullable::from_json(x.find("path").unwrap_or(&Json::Null), |x| {
+                    Ok((try_opt!(x.as_string(),
+                                 ErrorStatus::UnknownError,
+                                 "Failed to interpret path as String"))
+                        .to_string())
+                })?;
+                let domain = Nullable::from_json(x.find("domain").unwrap_or(&Json::Null), |x| {
+                    Ok((try_opt!(x.as_string(),
+                                 ErrorStatus::UnknownError,
+                                 "Failed to interpret domain as String"))
+                        .to_string())
+                })?;
+                let expiry = Nullable::from_json(x.find("expiry").unwrap_or(&Json::Null), |x| {
+                    Ok(Date::new((try_opt!(x.as_u64(),
+                                           ErrorStatus::UnknownError,
+                                           "Failed to interpret domain as String"))))
+                })?;
+                let secure = try_opt!(x.find("secure").map_or(Some(false), |x| x.as_boolean()),
+                                      ErrorStatus::UnknownError,
+                                      "Failed to interpret secure as boolean");
+                let http_only = try_opt!(x.find("httpOnly")
+                                             .map_or(Some(false), |x| x.as_boolean()),
+                                         ErrorStatus::UnknownError,
+                                         "Failed to interpret httpOnly as boolean");
+                Ok(Cookie::new(name, value, path, domain, expiry, secure, http_only))
+            })
+            .collect::<Result<Vec<_>, _>>()
     }
 
     pub fn error_from_string(&self, error_code: &str) -> ErrorStatus {
@@ -860,12 +870,12 @@ impl MarionetteCommand {
             FindElement(ref x) => (Some("findElement"), Some(x.to_marionette())),
             FindElements(ref x) => (Some("findElements"), Some(x.to_marionette())),
             FindElementElement(ref e, ref x) => {
-                let mut data = try!(x.to_marionette());
+                let mut data = x.to_marionette()?;
                 data.insert("element".to_string(), e.id.to_json());
                 (Some("findElement"), Some(Ok(data)))
             },
             FindElementElements(ref e, ref x) => {
-                let mut data = try!(x.to_marionette());
+                let mut data = x.to_marionette()?;
                 data.insert("element".to_string(), e.id.to_json());
                 (Some("findElements"), Some(Ok(data)))
             },
@@ -955,7 +965,7 @@ impl MarionetteCommand {
                         (Some("findElements"), Some(Ok(data)))
                     },
                     &GeckoExtensionCommand::XblAnonymousByAttribute(ref e, ref x) => {
-                        let mut data = try!(x.to_marionette());
+                        let mut data = x.to_marionette()?;
                         data.insert("element".to_string(), e.id.to_json());
                         (Some("findElement"), Some(Ok(data)))
                     }
@@ -966,7 +976,7 @@ impl MarionetteCommand {
         let name = try_opt!(opt_name,
                             ErrorStatus::UnsupportedOperation,
                             "Operation not supported");
-        let parameters = try!(opt_parameters.unwrap_or(Ok(BTreeMap::new())));
+        let parameters = opt_parameters.unwrap_or(Ok(BTreeMap::new()))?;
 
         Ok(MarionetteCommand::new(id, name.into(), parameters))
     }
@@ -992,9 +1002,8 @@ impl MarionetteResponse {
                                   "Expected a json array");
 
         if data_array.len() != 4 {
-            return Err(WebDriverError::new(
-                ErrorStatus::UnknownError,
-                "Expected an array of length 4"));
+            return Err(WebDriverError::new(ErrorStatus::UnknownError,
+                                           "Expected an array of length 4"));
         }
 
         if data_array[0].as_u64() != Some(1) {
@@ -1005,7 +1014,7 @@ impl MarionetteResponse {
                           ErrorStatus::UnknownError,
                           "Expected an integer id");
         let error = if data[2].is_object() {
-            Some(try!(MarionetteError::from_json(&data[2])))
+            Some(MarionetteError::from_json(&data[2])?)
         } else if data[2].is_null() {
             None
         } else {
@@ -1016,13 +1025,14 @@ impl MarionetteResponse {
         let result = if data[3].is_null() || data[3].is_object() || data[3].is_array() {
             data[3].clone()
         } else {
-            return Err(WebDriverError::new(ErrorStatus::UnknownError,
-                                           "Expected object params"));
+            return Err(WebDriverError::new(ErrorStatus::UnknownError, "Expected object params"));
         };
 
-        Ok(MarionetteResponse {id: id,
-                               error: error,
-                               result: result})
+        Ok(MarionetteResponse {
+            id: id,
+            error: error,
+            result: result,
+        })
     }
 }
 
@@ -1137,13 +1147,13 @@ impl MarionetteConnection {
 
         debug!("TCP connection established");
 
-        try!(self.handshake());
+        self.handshake()?;
         Ok(())
     }
 
     fn handshake(&mut self) -> WebDriverResult<()> {
-        let resp = try!(self.read_resp());
-        let handshake_data = try!(Json::from_str(&*resp));
+        let resp = self.read_resp()?;
+        let handshake_data = Json::from_str(&*resp)?;
 
         let data = try_opt!(handshake_data.as_object(),
                             ErrorStatus::UnknownError,
@@ -1176,13 +1186,13 @@ impl MarionetteConnection {
     }
 
     pub fn send_command(&mut self, msg: &WebDriverMessage<GeckoExtensionRoute>) -> WebDriverResult<WebDriverResponse>  {
-        let command = try!(MarionetteCommand::from_webdriver_message(
-            self.session.next_command_id(), msg));
+        let command = MarionetteCommand::from_webdriver_message(
+            self.session.next_command_id(), msg)?;
 
-        let resp_data = try!(self.send(command.to_json()));
-        let json_data: Json = try!(Json::from_str(&*resp_data));
+        let resp_data = self.send(command.to_json())?;
+        let json_data: Json = Json::from_str(&*resp_data)?;
 
-        self.session.response(msg, try!(MarionetteResponse::from_json(&json_data)))
+        self.session.response(msg, MarionetteResponse::from_json(&json_data)?)
     }
 
     fn send(&mut self, msg: Json) -> WebDriverResult<String> {
@@ -1223,7 +1233,7 @@ impl MarionetteConnection {
         let mut stream = self.stream.as_mut().unwrap();
         loop {
             let mut buf = &mut [0 as u8];
-            let num_read = try!(stream.read(buf));
+            let num_read = stream.read(buf)?;
             let byte = match num_read {
                 0 => {
                     return Err(IoError::new(ErrorKind::Other,
@@ -1248,7 +1258,7 @@ impl MarionetteConnection {
         let mut payload = Vec::with_capacity(bytes);
         let mut total_read = 0;
         while total_read < bytes {
-            let num_read = try!(stream.read(buf));
+            let num_read = stream.read(buf)?;
             if num_read == 0 {
                 return Err(IoError::new(ErrorKind::Other,
                                         "EOF reading marionette message"))
@@ -1336,7 +1346,10 @@ impl ToMarionette for JavascriptCommandParameters {
 
 impl ToMarionette for GetCookieParameters {
     fn to_marionette(&self) -> WebDriverResult<BTreeMap<String, Json>> {
-        Ok(try_opt!(self.to_json().as_object(), ErrorStatus::UnknownError, "Expected an object").clone())
+        Ok(try_opt!(self.to_json().as_object(),
+                    ErrorStatus::UnknownError,
+                    "Expected an object")
+            .clone())
     }
 }
 
@@ -1367,7 +1380,7 @@ impl ToMarionette for TakeScreenshotParameters {
         let mut data = BTreeMap::new();
         let element = match self.element {
             Nullable::Null => Json::Null,
-            Nullable::Value(ref x) => Json::Object(try!(x.to_marionette()))
+            Nullable::Value(ref x) => Json::Object(x.to_marionette()?),
         };
         data.insert("element".to_string(), element);
         Ok(data)
@@ -1384,10 +1397,13 @@ impl ToMarionette for WebElement {
 
 impl<T: ToJson> ToMarionette for Nullable<T> {
     fn to_marionette(&self) -> WebDriverResult<BTreeMap<String, Json>> {
-        //Note this is a terrible hack. We don't want Nullable<T: ToJson+ToMarionette>
-        //so in cases where ToJson != ToMarionette you have to deal with the Nullable
-        //explicitly. This kind of suggests that the whole design is wrong.
-        Ok(try_opt!(self.to_json().as_object(), ErrorStatus::UnknownError, "Expected an object").clone())
+        // Note this is a terrible hack. We don't want Nullable<T: ToJson+ToMarionette>
+        // so in cases where ToJson != ToMarionette you have to deal with the Nullable
+        // explicitly. This kind of suggests that the whole design is wrong.
+        Ok(try_opt!(self.to_json().as_object(),
+                    ErrorStatus::UnknownError,
+                    "Expected an object")
+            .clone())
     }
 }
 
@@ -1396,9 +1412,10 @@ impl ToMarionette for FrameId {
         let mut data = BTreeMap::new();
         match *self {
             FrameId::Short(x) => data.insert("id".to_string(), x.to_json()),
-            FrameId::Element(ref x) => data.insert("element".to_string(),
-                                                   Json::Object(try!(x.to_marionette()))),
-            FrameId::Null => None
+            FrameId::Element(ref x) => {
+                data.insert("element".to_string(), Json::Object(x.to_marionette()?))
+            }
+            FrameId::Null => None,
         };
         Ok(data)
     }
