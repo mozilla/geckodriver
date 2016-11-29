@@ -9,10 +9,17 @@ When opening new issues or commenting on existing issues please make
 sure discussions are related to concrete technical issues with the
 GeckoDriver or Marionette software.
 
-It's imperative that issue reports outline the steps to reproduce
-the defect. If the issue can't be reproduced it will be closed.
-Please provide [concise reproducible test cases](http://sscce.org/)
-and describe what results you are seeing and what results you expect.
+For issue reports to be actionable, it must be clear exactly what the
+observed and expected behaviours are, and how to set up the state required
+to observe the erroneous behaviour. The most useful thing to provide is a
+minimal HTML file which allows the problem to be reproduced, plus a
+debug-level log from geckodriver showing the wire-protocol calls used to set
+up the problem. Please provide [concise reproducible test
+cases](http://sscce.org/) and describe what results you are seeing and what
+results you expect.. Because of the wide variety of client bindings for
+WebDriver, clients scripts and logs are typically not very useful if the
+verbose geckodriver logs are available. Issues relating to a specific client
+should be filed in the issue tracker of that project.
 
 ## Code Contributions
 
@@ -55,34 +62,6 @@ First make sure git knows your name and email address:
 % git config --global user.email 'santa@example.com'
 ```
 
-**Writing good commit messages is important.** A commit message
-should describe what changed, why, and reference issues fixed (if
-any).  Follow these guidelines when writing one:
-
-1. The first line should be around 50 characters or less and contain a
-   short description of the change.
-2. Keep the second line blank.
-3. Wrap all other lines at 72 columns.
-4. Include `Fixes #N`, where _N_ is the issue number the commit
-   fixes, if any.
-
-A good commit message can look like this:
-
-```text
-explain commit normatively in one line
-
-Body of commit message is a few lines of text, explaining things
-in more detail, possibly giving some background about the issue
-being fixed, etc.
-
-The body of the commit message can be several paragraphs, and
-please do proper word-wrap and keep columns shorter than about
-72 characters or so. That way `git log` will show things
-nicely even when it is indented.
-
-Fixes #141
-```
-
 The first line must be meaningful as it's what people see when they
 run `git shortlog` or `git log --oneline`.
 
@@ -104,19 +83,17 @@ Use `git rebase` (not `git merge`) to sync your work from time to time.
 Go to https://github.com/yourusername/geckodriver.git and press the _Pull
 Request_ and fill out the form.
 
-Pull requests are usually reviewed within a few days. If there are
-comments to address, apply your changes in new commits (preferably
-[fixups](http://git-scm.com/docs/git-commit)) and push to the same
-branch.
+Pull requests are usually reviewed within a few days. Reviews will be done
+through [Reviewable](https://reviewable.io/reviews/mozilla/geckodriver)
 
 ### Step 6: Integration
 
 When code review is complete, a committer will take your PR and
-integrate it on Selenium's master branch. Because we like to keep a
+integrate it on GeckoDrivers's master branch. Because we like to keep a
 linear history on the master branch, we will normally squash and rebase
 your branch history.
 
 ## Communication
 
 GeckoDriver contributors frequent the `#ateam` channel on
-[`irc.freenode.org`](https://webchat.freenode.net/).
+[`irc.mozilla.org`](http://chat.mibbit.com/?server=irc.mozilla.org:#ateam).
