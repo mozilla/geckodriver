@@ -1,29 +1,27 @@
-# Contributing to GeckoDriver
+# Contributing to geckodriver
 
-The GeckoDriver project welcomes contributions from everyone. There are a
+The geckodriver project welcomes contributions from everyone. There are a
 number of ways you can help:
 
-## Bug Reports
+## Issue Reports
 
 When opening new issues or commenting on existing issues please make
 sure discussions are related to concrete technical issues with the
-GeckoDriver or Marionette software.
+geckodriver or Marionette software.
 
 For issue reports to be actionable, it must be clear exactly what the
 observed and expected behaviours are, and how to set up the state required
 to observe the erroneous behaviour. The most useful thing to provide is a
 minimal HTML file which allows the problem to be reproduced, plus a
-debug-level log from geckodriver showing the wire-protocol calls used to set
+trace-level log from geckodriver showing the wire-protocol calls used to set
 up the problem. Please provide [concise reproducible test
 cases](http://sscce.org/) and describe what results you are seeing and what
-results you expect.. Because of the wide variety of client bindings for
+results you expect. Because of the wide variety of client bindings for
 WebDriver, clients scripts and logs are typically not very useful if the
 verbose geckodriver logs are available. Issues relating to a specific client
 should be filed in the issue tracker of that project.
 
 ## Code Contributions
-
-The GeckoDriver project welcomes new contributors.
 
 If you're looking for easy bugs, have a look at
 [issues labelled E-easy](https://github.com/mozilla/geckodriver/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+label%3Aeasy+)
@@ -77,10 +75,10 @@ Use `git rebase` (not `git merge`) to sync your work from time to time.
 ### Step 5: Push
 
 ```text
-% git push origin my-feature-branch
+% git push my-feature-branch
 ```
 
-Go to https://github.com/yourusername/geckodriver.git and press the _Pull
+Go to https://github.com/yourusername/geckodriver and press the _Pull
 Request_ and fill out the form.
 
 Pull requests are usually reviewed within a few days. Reviews will be done
@@ -89,11 +87,11 @@ through [Reviewable](https://reviewable.io/reviews/mozilla/geckodriver)
 ### Step 6: Integration
 
 When code review is complete, a committer will take your PR and
-integrate it on GeckoDrivers's master branch. Because we like to keep a
+integrate it on geckodriver's master branch. Because we like to keep a
 linear history on the master branch, we will normally squash and rebase
 your branch history.
 
 ## Communication
 
-GeckoDriver contributors frequent the `#ateam` channel on
+geckodriver contributors frequent the `#ateam` channel on
 [`irc.mozilla.org`](http://chat.mibbit.com/?server=irc.mozilla.org:#ateam).
