@@ -157,4 +157,12 @@ but the gist of it is this:
 
 Or if you’re on Mac:
 
-    % geckodriver -b /Applications/FirefoxNightly.app/Contents/MacOS/firefox-bin
+    % geckodriver -b /Applications/FirefoxNightly.app/Contents/MacOS/firefox-bi
+
+## Setup
+
+Java Bindings
+
+Ensure you add the following line before invoking WebDriver for Firefox:
+
+    # System.setProperty("webdriver.gecko.driver", "path/to/gecko/gechoexe")
