@@ -31,14 +31,14 @@ use webdriver::command::WebDriverCommand::{
     IsDisplayed, IsSelected, GetElementAttribute, GetElementProperty, GetCSSValue,
     GetElementText, GetElementTagName, GetElementRect, IsEnabled,
     ElementClick, ElementTap, ElementClear, ElementSendKeys,
-    ExecuteScript, ExecuteAsyncScript, GetCookies, GetCookie, AddCookie,
+    ExecuteScript, ExecuteAsyncScript, GetCookies, GetNamedCookie, AddCookie,
     DeleteCookies, DeleteCookie, GetTimeouts, SetTimeouts, DismissAlert,
     AcceptAlert, GetAlertText, SendAlertText, TakeScreenshot, TakeElementScreenshot,
     Extension, SetWindowPosition, GetWindowPosition, PerformActions, ReleaseActions};
 use webdriver::command::{
     NewSessionParameters, GetParameters, WindowSizeParameters, SwitchToWindowParameters,
     SwitchToFrameParameters, LocatorParameters, JavascriptCommandParameters,
-    GetCookieParameters, AddCookieParameters, TimeoutsParameters,
+    GetNamedCookieParameters, AddCookieParameters, TimeoutsParameters,
     ActionsParameters, TakeScreenshotParameters, WindowPositionParameters};
 use webdriver::response::{
     WebDriverResponse, NewSessionResponse, ValueResponse, WindowSizeResponse,
@@ -75,29 +75,27 @@ impl WebDriverExtensionRoute for GeckoExtensionRoute {
 
     fn command(&self,
                captures: &Captures,
-               body_data: &Json) -> WebDriverResult<WebDriverCommand<GeckoExtensionCommand>> {
+               body_data: &Json)
+               -> WebDriverResult<WebDriverCommand<GeckoExtensionCommand>> {
         let command = match self {
-            &GeckoExtensionRoute::GetContext => {
-                GeckoExtensionCommand::GetContext
-            }
+            &GeckoExtensionRoute::GetContext => GeckoExtensionCommand::GetContext,
             &GeckoExtensionRoute::SetContext => {
                 let parameters: GeckoContextParameters = try!(Parameters::from_json(&body_data));
                 GeckoExtensionCommand::SetContext(parameters)
-            },
+            }
             &GeckoExtensionRoute::XblAnonymousChildren => {
                 let element_id = try!(captures.name("elementId")
-                                      .ok_or(WebDriverError::new(
-                                          ErrorStatus::InvalidArgument,
-                                          "Missing elementId parameter")));
-                GeckoExtensionCommand::XblAnonymousChildren(element_id.into())
-            },
+                    .ok_or(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                               "Missing elementId parameter")));
+                GeckoExtensionCommand::XblAnonymousChildren(element_id.as_str().into())
+            }
             &GeckoExtensionRoute::XblAnonymousByAttribute => {
                 let element_id = try!(captures.name("elementId")
-                                      .ok_or(WebDriverError::new(
-                                          ErrorStatus::InvalidArgument,
-                                          "Missing elementId parameter")));
+                    .ok_or(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                               "Missing elementId parameter")));
                 let parameters: AttributeParameters = try!(Parameters::from_json(&body_data));
-                GeckoExtensionCommand::XblAnonymousByAttribute(element_id.into(), parameters)
+                GeckoExtensionCommand::XblAnonymousByAttribute(element_id.as_str().into(),
+                                                               parameters)
             }
         };
         Ok(WebDriverCommand::Extension(command))
@@ -607,9 +605,9 @@ impl MarionetteSession {
                 let cookies = try!(self.process_cookies(&resp.result));
                 WebDriverResponse::Cookie(CookieResponse::new(cookies))
             },
-            GetCookie(ref name) => {
+            GetNamedCookie(ref name) => {
                 let mut cookies = try!(self.process_cookies(&resp.result));
-                cookies.retain(|x| x.name == *name);
+                cookies.retain(|cookie| cookie.name == *name);
                 WebDriverResponse::Cookie(CookieResponse::new(cookies))
             }
             FindElement(_) | FindElementElement(_, _) => {
@@ -872,7 +870,7 @@ impl MarionetteCommand {
             },
             ExecuteScript(ref x) => (Some("executeScript"), Some(x.to_marionette())),
             ExecuteAsyncScript(ref x) => (Some("executeAsyncScript"), Some(x.to_marionette())),
-            GetCookies | GetCookie(_) => (Some("getCookies"), None),
+            GetCookies | GetNamedCookie(_) => (Some("getCookies"), None),
             DeleteCookies => (Some("deleteAllCookies"), None),
             DeleteCookie(ref x) => {
                 let mut data = BTreeMap::new();
@@ -1306,9 +1304,12 @@ impl ToMarionette for ActionsParameters {
     }
 }
 
-impl ToMarionette for GetCookieParameters {
+impl ToMarionette for GetNamedCookieParameters {
     fn to_marionette(&self) -> WebDriverResult<BTreeMap<String, Json>> {
-        Ok(try_opt!(self.to_json().as_object(), ErrorStatus::UnknownError, "Expected an object").clone())
+        Ok(try_opt!(self.to_json().as_object(),
+                    ErrorStatus::UnknownError,
+                    "Expected an object")
+            .clone())
     }
 }
 
