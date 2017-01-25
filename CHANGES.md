@@ -2,6 +2,11 @@
 
 All notable changes to this program is documented in this file.
 
+## Unreleased
+
+### Changed
+- WebDriver libary updated to version 0.19
+
 ## 0.13.0 (2017-01-06)
 
 ### Changed
