@@ -41,8 +41,7 @@ use webdriver::command::{
     GetNamedCookieParameters, AddCookieParameters, TimeoutsParameters,
     ActionsParameters, TakeScreenshotParameters, WindowPositionParameters};
 use webdriver::response::{
-    WebDriverResponse, NewSessionResponse, ValueResponse, WindowSizeResponse,
-    WindowPositionResponse, ElementRectResponse, CookieResponse, Cookie};
+    WebDriverResponse, NewSessionResponse, ValueResponse, CookieResponse, Cookie};
 use webdriver::common::{
     Date, Nullable, WebElement, FrameId, ELEMENT_KEY};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
@@ -550,8 +549,10 @@ impl MarionetteSession {
                              "Failed to find height field").as_u64(),
                     ErrorStatus::UnknownError,
                     "Failed to interpret width as integer");
-
-                WebDriverResponse::WindowSize(WindowSizeResponse::new(width, height))
+                let mut data = BTreeMap::new();
+                data.insert("width".to_owned(), width.to_json());
+                data.insert("height".to_owned(), height.to_json());
+                WebDriverResponse::Generic(ValueResponse::new(Json::Object(data)))
             },
             GetWindowPosition => {
                 let x = try_opt!(
@@ -568,7 +569,10 @@ impl MarionetteSession {
                     ErrorStatus::UnknownError,
                     "Failed to interpret y as integer");
 
-                WebDriverResponse::WindowPosition(WindowPositionResponse::new(x, y))
+                let mut data = BTreeMap::new();
+                data.insert("x".to_owned(), x.to_json());
+                data.insert("y".to_owned(), y.to_json());
+                WebDriverResponse::Generic(ValueResponse::new(Json::Object(data)))
             },
             GetElementRect(_) => {
                 let x = try_opt!(
@@ -599,7 +603,12 @@ impl MarionetteSession {
                     ErrorStatus::UnknownError,
                     "Failed to interpret width as float");
 
-                WebDriverResponse::ElementRect(ElementRectResponse::new(x, y, width, height))
+                let mut data = BTreeMap::new();
+                data.insert("x".to_owned(), x.to_json());
+                data.insert("y".to_owned(), y.to_json());
+                data.insert("width".to_owned(), width.to_json());
+                data.insert("height".to_owned(), height.to_json());
+                WebDriverResponse::Generic(ValueResponse::new(Json::Object(data)))
             },
             GetCookies => {
                 let cookies = try!(self.process_cookies(&resp.result));
