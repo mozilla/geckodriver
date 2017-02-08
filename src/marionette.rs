@@ -793,7 +793,7 @@ impl MarionetteCommand {
             },
             DeleteSession => {
                 let mut body = BTreeMap::new();
-                body.insert("flags".to_owned(), vec!["eForceQuit".to_json()].to_json());
+                body.insert("flags".to_owned(), Json::Null);
                 (Some("quitApplication"), Some(Ok(body)))
             },
             Status => panic!("Got status command that should already have been handled"),
