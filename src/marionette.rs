@@ -811,7 +811,9 @@ impl MarionetteCommand {
         }
     }
 
-    fn from_webdriver_message(id: u64, msg: &WebDriverMessage<GeckoExtensionRoute>) -> WebDriverResult<MarionetteCommand> {
+    fn from_webdriver_message(id: u64,
+                              msg: &WebDriverMessage<GeckoExtensionRoute>)
+                              -> WebDriverResult<MarionetteCommand> {
         let (opt_name, opt_parameters) = match msg.command {
             NewSession(ref x) => {
                 let mut data = BTreeMap::new();
@@ -819,11 +821,7 @@ impl MarionetteCommand {
                 data.insert("capabilities".to_string(), x.to_json());
                 (Some("newSession"), Some(Ok(data)))
             },
-            DeleteSession => {
-                let mut body = BTreeMap::new();
-                body.insert("flags".to_owned(), vec!["eForceQuit".to_json()].to_json());
-                (Some("quitApplication"), Some(Ok(body)))
-            },
+            DeleteSession => (Some("deleteSession"), None),
             Status => panic!("Got status command that should already have been handled"),
             Get(ref x) => (Some("get"), Some(x.to_marionette())),
             GetCurrentUrl => (Some("getCurrentUrl"), None),

@@ -8,6 +8,7 @@ All notable changes to this program is documented in this file.
 - Added routing and parsing for the [Get Timeouts](https://w3c.github.io/webdriver/webdriver-spec.html#dfn-get-timeouts) command
 
 ### Changed
+- geckodriver now responsible for terminating the Firefox process when the session ends
 - Now uses about:blank as the new tab document; this was previously disabled due to [bug 1333736](https://bugzilla.mozilla.org/show_bug.cgi?id=1333736) in Marionette
 
 ### Fixed
