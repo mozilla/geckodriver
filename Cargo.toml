@@ -12,8 +12,8 @@ readme = "README.md"
 license = "MPL-2.0"
 
 [dependencies]
-chrono = "^0.2"
-clap = {version = "^2.19", default-features = false, features = ["suggestions", "wrap_help"]}
+chrono = "=0.2.25"
+clap = {version = "=2.20.3", default-features = false, features = ["suggestions", "wrap_help"]}
 hyper = "0.10"
 lazy_static = "0.1"
 log = "0.3"
@@ -28,3 +28,18 @@ slog-stream = "1"
 uuid = "0.1.18"
 webdriver = "0.22"
 zip = "0.1"
+
+# As a temporary workaround we pin certain dependencies exactly so that
+# cargo will not complain about missing vendored crate versions when we
+# build geckodriver from mozilla-central.
+#
+# We do not quite know yet why `./mach vendor rust` does not transitively
+# vendor dependencies' dependencies, but the following list is the
+# current available crate versions under third_party/rust that we can use.
+gcc = "=0.3.42"
+num = "=0.1.36"
+num_cpus = "=1.2.1"
+num-integer = "=0.1.32"
+num-traits = "=0.1.36"
+term_size = "=0.2.2"
+thread_local = "=0.3.2"
