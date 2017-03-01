@@ -42,3 +42,6 @@ num-integer = "=0.1.32"
 num-traits = "=0.1.36"
 term_size = "=0.2.2"
 thread_local = "=0.3.2"
+
+[[bin]]
+name = "geckodriver"
