@@ -19,6 +19,7 @@ lazy_static = "0.1"
 log = "0.3"
 mozprofile = "0.2"
 mozrunner = "0.3"
+mozversion = {"path"="/home/james/develop/mozversion"}
 regex = "0.2"
 rustc-serialize = "0.3"
 slog = "1"

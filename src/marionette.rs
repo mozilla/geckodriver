@@ -4,7 +4,6 @@ use logging::LogLevel;
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
 use mozrunner::runner::{Runner, FirefoxRunner};
-use mozrunner::runner::platform::firefox_default_path;
 use regex::Captures;
 use rustc_serialize::json;
 use rustc_serialize::json::{Json, ToJson};
@@ -36,7 +35,8 @@ use webdriver::command::WebDriverCommand::{
     AcceptAlert, GetAlertText, SendAlertText, TakeScreenshot, TakeElementScreenshot,
     Extension, SetWindowPosition, GetWindowPosition, PerformActions, ReleaseActions};
 use webdriver::command::{
-    NewSessionParameters, GetParameters, WindowSizeParameters, SwitchToWindowParameters,
+    NewSessionParameters, CapabilitiesMatching,
+    GetParameters, WindowSizeParameters, SwitchToWindowParameters,
     SwitchToFrameParameters, LocatorParameters, JavascriptCommandParameters,
     GetNamedCookieParameters, AddCookieParameters, TimeoutsParameters,
     ActionsParameters, TakeScreenshotParameters, WindowPositionParameters};
@@ -49,7 +49,7 @@ use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::server::{WebDriverHandler, Session};
 use webdriver::httpapi::{WebDriverExtensionRoute};
 
-use capabilities::FirefoxOptions;
+use capabilities::{FirefoxCapabilities, FirefoxOptions};
 use prefs;
 
 const DEFAULT_HOST: &'static str = "localhost";
@@ -268,9 +268,23 @@ impl MarionetteHandler {
         }
     }
 
-    fn create_connection(&mut self, session_id: &Option<String>,
-                         capabilities: &mut NewSessionParameters) -> WebDriverResult<()> {
-        let options = try!(FirefoxOptions::from_capabilities(capabilities));
+    fn create_connection(&mut self,
+                         session_id: &Option<String>,
+                         new_session_parameters: &NewSessionParameters)
+                         -> WebDriverResult<BTreeMap<String, Json>> {
+        let (options, capabilities) = {
+            let mut fx_capabilities = FirefoxCapabilities::new(self.settings.binary.as_ref());
+            let mut capabilities = try!(
+                try!(new_session_parameters
+                    .match_browser(&mut fx_capabilities))
+                    .ok_or(WebDriverError::new(
+                        ErrorStatus::SessionNotCreated,
+                        "Unable to find a matching set of capabilities.")));
+
+            let options = try!(FirefoxOptions::from_capabilities(fx_capabilities.binary,
+                                                                 &mut capabilities));
+            (options, capabilities)
+        };
 
         self.current_log_level = options.log.level.clone().or(self.settings.log_level.clone());
         logging::init(&self.current_log_level);
@@ -284,11 +298,11 @@ impl MarionetteHandler {
         try!(connection.connect());
         self.connection = Mutex::new(Some(connection));
 
-        Ok(())
+        Ok(capabilities)
     }
 
     fn start_browser(&mut self, port: u16, mut options: FirefoxOptions) -> WebDriverResult<()> {
-        let binary = try!(self.binary_path(&mut options)
+        let binary = try!(options.binary
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated,
                                        "Expected browser binary location, but unable to find \
                                         binary in default location, no \
@@ -322,12 +336,6 @@ impl MarionetteHandler {
         Ok(())
     }
 
-    fn binary_path(&self, options: &mut FirefoxOptions) -> Option<PathBuf> {
-        options.binary.take()
-            .or_else(|| self.settings.binary.as_ref().map(|x| x.clone()))
-            .or_else(|| firefox_default_path())
-    }
-
     pub fn set_prefs(&self, port: u16, profile: &mut Profile, custom_profile: bool,
                      extra_prefs: Vec<(String, Pref)>)
                  -> WebDriverResult<()> {
@@ -354,9 +362,11 @@ impl MarionetteHandler {
 }
 
 impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
-    fn handle_command(&mut self, _: &Option<Session>, mut msg: WebDriverMessage<GeckoExtensionRoute>) -> WebDriverResult<WebDriverResponse> {
+    fn handle_command(&mut self, _: &Option<Session>,
+                      msg: WebDriverMessage<GeckoExtensionRoute>) -> WebDriverResult<WebDriverResponse> {
+        let mut resolved_capabilities = None;
         {
-            let mut new_capabilities = None;
+            let mut capabilities_options = None;
             // First handle the status message which doesn't actually require a marionette
             // connection or message
             if msg.command == Status {
@@ -375,8 +385,8 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
                 Ok(ref connection) => {
                     if connection.is_none() {
                         match msg.command {
-                            NewSession(ref mut capabilities) => {
-                                new_capabilities = Some(capabilities);
+                            NewSession(ref capabilities) => {
+                                capabilities_options = Some(capabilities);
                             },
                             _ => {
                                 return Err(WebDriverError::new(
@@ -392,15 +402,16 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
                         "Failed to aquire Marionette connection"))
                 }
             }
-            if let Some(capabilities) = new_capabilities {
-                try!(self.create_connection(&msg.session_id, capabilities));
+            if let Some(capabilities) = capabilities_options {
+                resolved_capabilities = Some(try!(
+                    self.create_connection(&msg.session_id, &capabilities)));
             }
         }
 
         match self.connection.lock() {
             Ok(ref mut connection) => {
                 match connection.as_mut() {
-                    Some(conn) => conn.send_command(&msg),
+                    Some(conn) => conn.send_command(resolved_capabilities, &msg),
                     None => panic!("Connection missing")
                 }
             },
@@ -811,12 +822,20 @@ impl MarionetteCommand {
         }
     }
 
-    fn from_webdriver_message(id: u64, msg: &WebDriverMessage<GeckoExtensionRoute>) -> WebDriverResult<MarionetteCommand> {
+    fn from_webdriver_message(id: u64,
+                              capabilities: Option<BTreeMap<String, Json>>,
+                              msg: &WebDriverMessage<GeckoExtensionRoute>)
+                              -> WebDriverResult<MarionetteCommand> {
         let (opt_name, opt_parameters) = match msg.command {
-            NewSession(ref x) => {
+            NewSession(_) => {
+                let caps = capabilities.expect("Tried to create new session without processing capabilities");
                 let mut data = BTreeMap::new();
                 data.insert("sessionId".to_string(), Json::Null);
-                data.insert("capabilities".to_string(), x.to_json());
+                let mut desired_capabilites = BTreeMap::new();
+                desired_capabilites.insert("desiredCapabilities".to_string(),
+                                           caps.to_json());
+                data.insert("capabilities".to_string(),
+                            desired_capabilites.to_json());
                 (Some("newSession"), Some(Ok(data)))
             },
             DeleteSession => {
@@ -1166,10 +1185,11 @@ impl MarionetteConnection {
     }
 
     pub fn send_command(&mut self,
+                        capabilities: Option<BTreeMap<String, Json>>,
                         msg: &WebDriverMessage<GeckoExtensionRoute>)
                         -> WebDriverResult<WebDriverResponse> {
         let id = self.session.next_command_id();
-        let command = try!(MarionetteCommand::from_webdriver_message(id, msg));
+        let command = try!(MarionetteCommand::from_webdriver_message(id, capabilities, msg));
 
         let resp_data = try!(self.send(command.to_json()));
         let json_data: Json = try!(Json::from_str(&*resp_data));
