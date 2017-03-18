@@ -890,10 +890,7 @@ impl MarionetteCommand {
             ElementSendKeys(ref e, ref x) => {
                 let mut data = BTreeMap::new();
                 data.insert("id".to_string(), e.id.to_json());
-                let json_value: Vec<String> = x.value.iter().map(|x| {
-                    x.to_string()
-                }).collect();
-                data.insert("value".to_string(), json_value.to_json());
+                data.insert("value".to_string(), x.text.to_json());
                 (Some("sendKeysToElement"), Some(Ok(data)))
             },
             ExecuteScript(ref x) => (Some("executeScript"), Some(x.to_marionette())),
@@ -911,10 +908,7 @@ impl MarionetteCommand {
             GetAlertText => (Some("getTextFromDialog"), None),
             SendAlertText(ref x) => {
                 let mut data = BTreeMap::new();
-                let json_value: Vec<String> = x.value.iter().map(|x| {
-                    x.to_string()
-                }).collect();
-                data.insert("value".to_string(), json_value.to_json());
+                data.insert("value".to_string(), x.text.to_json());
                 (Some("sendKeysToDialog"), Some(Ok(data)))
             },
             TakeScreenshot => {
