@@ -397,7 +397,7 @@ mod tests {
     use self::rustc_serialize::base64::{ToBase64, Config, CharacterSet, Newline};
     use self::rustc_serialize::json::Json;
 
-    use webdriver::command::NewSessionParameters;
+    use webdriver::capabilities::LegacyNewSessionParameters;
     use marionette::MarionetteHandler;
     use super::FirefoxOptions;
 
@@ -414,10 +414,10 @@ mod tests {
         Json::String(profile_data.to_base64(base64_config))
     }
 
-    fn capabilities() -> NewSessionParameters {
+    fn capabilities() -> LegacyNewSessionParameters {
         let desired: BTreeMap<String, Json> = BTreeMap::new();
         let required: BTreeMap<String, Json> = BTreeMap::new();
-        NewSessionParameters {
+        LegacyNewSessionParameters {
             desired: desired,
             required: required
         }
@@ -432,7 +432,7 @@ mod tests {
         firefox_options.insert("profile".into(), encoded_profile);
         capabilities.required.insert("moz:firefoxOptions".into(), Json::Object(firefox_options));
 
-        let options = FirefoxOptions::from_capabilities(&mut capabilities).unwrap();
+        let options = FirefoxOptions::from_capabilities(None, &mut capabilities.required).unwrap();
         let mut profile = options.profile.unwrap();
         let prefs = profile.user_prefs().unwrap();
 
@@ -455,7 +455,7 @@ mod tests {
         capabilities.required.insert("moz:firefoxOptions".into(), Json::Object(firefox_options));
 
 
-        let options = FirefoxOptions::from_capabilities(&mut capabilities).unwrap();
+        let options = FirefoxOptions::from_capabilities(None, &mut capabilities.required).unwrap();
         let mut profile = options.profile.unwrap();
 
         let handler = MarionetteHandler::new(Default::default());
