@@ -346,7 +346,8 @@ for its lack of support for the [new multi-processing architecture in Gecko](htt
 
 Selenium client bindings will pick up the _geckodriver_ binary executable
 from your [system’s `PATH` environmental variable](https://en.wikipedia.org/wiki/PATH_(variable))
-unless you override it by setting the `webdriver.gecko.driver` [Java VM system property](http://docs.oracle.com/javase/tutorial/essential/environment/sysprop.html):
+unless you override it by setting the `webdriver.gecko.driver`
+[Java VM system property](http://docs.oracle.com/javase/tutorial/essential/environment/sysprop.html):
 
 ```java
 System.setProperty("webdriver.gecko.driver", "/home/ato/bin");
