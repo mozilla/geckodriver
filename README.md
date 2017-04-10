@@ -371,7 +371,7 @@ by exporting or setting the `PATH` variable:
 
 On Window systems you can change the system path
 by right-clicking **My Computer** and choosing **Properties**.
-The dialogue that appears, navigate
+In the dialogue that appears, navigate
 **Advanced** → **Environmental Variables** → **Path**.
 
 Or in the Windows console window:
