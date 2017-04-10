@@ -350,12 +350,12 @@ unless you override it by setting the `webdriver.gecko.driver`
 [Java VM system property](http://docs.oracle.com/javase/tutorial/essential/environment/sysprop.html):
 
 ```java
-System.setProperty("webdriver.gecko.driver", "/home/ato/bin");
+System.setProperty("webdriver.gecko.driver", "/home/user/bin");
 ```
 
 Or by passing it as a flag to the [java(1)](http://www.manpagez.com/man/1/java/) launcher:
 
-	% java -Dwebdriver.gecko.driver=/home/ato/bin YourApplication
+	% java -Dwebdriver.gecko.driver=/home/user/bin YourApplication
 
 Your milage with this approach may vary
 based on which programming language bindings you are using.
@@ -365,9 +365,9 @@ In a bash compatible shell,
 you can make other programs aware of its location
 by exporting or setting the `PATH` variable:
 
-	% export PATH=$PATH:/home/ato/bin
+	% export PATH=$PATH:/home/user/bin
 	% whereis geckodriver
-	geckodriver: /home/ato/bin/geckodriver
+	geckodriver: /home/user/bin/geckodriver
 
 On Window systems you can change the system path
 by right-clicking **My Computer** and choosing **Properties**.
