@@ -459,8 +459,7 @@ available in geckodriver by viewing the help message:
 ## Building
 
 geckodriver is written in [Rust](https://www.rust-lang.org/),
-a new systems programming language from the [Mozilla](https://www.mozilla.org/en-US/),
-that is fast, prevents segfaults, and guarantees thread safety.
+a systems programming language from [Mozilla](https://www.mozilla.org/en-US/).
 In order to build this program,
 you will need the [Rust compiler toolchain](https://rustup.rs/).
 
