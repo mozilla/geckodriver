@@ -380,8 +380,8 @@ Or in the Windows console window:
 
 Since geckodriver is a separate HTTP server
 that is a complete remote end implementation of [WebDriver](https://w3c.github.io/webdriver/webdriver-spec.html),
-it is possible to circumvent the Selenium remote server
-by using it standalone if you have no requirements
+it is possible to avoid using the Selenium remote server
+if you have no requirements
 to distribute processes across a matrix of systems.
 
 Given a W3C WebDriver conforming client library (or _local end_)
