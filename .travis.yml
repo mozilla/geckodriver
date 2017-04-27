@@ -41,7 +41,10 @@ matrix:
       addons:
         apt:
           packages: &i686
-          - musl-tools
+          - musl:i386
+          - musl-dev:i386
+          - musl-tools:i386
+          - gcc:i386
           - gcc-multilib
           - libbz2-dev
     - os: linux
