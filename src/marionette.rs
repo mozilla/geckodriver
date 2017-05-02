@@ -62,7 +62,11 @@ pub fn extension_routes() -> Vec<(Method, &'static str, GeckoExtensionRoute)> {
               GeckoExtensionRoute::XblAnonymousChildren),
              (Method::Post,
               "/session/{sessionId}/moz/xbl/{elementId}/anonymous_by_attribute",
-              GeckoExtensionRoute::XblAnonymousByAttribute)];
+              GeckoExtensionRoute::XblAnonymousByAttribute),
+             (Method::Post, "/session/{sessionId}/moz/addon/install",
+                GeckoExtensionRoute::InstallAddon),
+             (Method::Post, "/session/{sessionId}/moz/addon/uninstall",
+                GeckoExtensionRoute::UninstallAddon)];
 }
 
 #[derive(Clone, PartialEq)]
@@ -71,6 +75,8 @@ pub enum GeckoExtensionRoute {
     SetContext,
     XblAnonymousChildren,
     XblAnonymousByAttribute,
+    InstallAddon,
+    UninstallAddon,
 }
 
 impl WebDriverExtensionRoute for GeckoExtensionRoute {
@@ -100,6 +106,16 @@ impl WebDriverExtensionRoute for GeckoExtensionRoute {
                 GeckoExtensionCommand::XblAnonymousByAttribute(element_id.as_str().into(),
                                                                parameters)
             }
+            &GeckoExtensionRoute::InstallAddon => {
+                let parameters: AddonParameters = try!(Parameters::from_json(&body_data));
+                GeckoExtensionCommand::InstallAddon(parameters)
+            }
+            &GeckoExtensionRoute::UninstallAddon => {
+                let addon_id = try!(captures.name("id")
+                    .ok_or(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                               "Missing id parameter")));
+                GeckoExtensionCommand::UninstallAddon(addon_id.as_str().into())
+            }
         };
         Ok(WebDriverCommand::Extension(command))
     }
@@ -111,6 +127,8 @@ pub enum GeckoExtensionCommand {
     SetContext(GeckoContextParameters),
     XblAnonymousChildren(WebElement),
     XblAnonymousByAttribute(WebElement, AttributeParameters),
+    InstallAddon(AddonParameters),
+    UninstallAddon(String)
 }
 
 impl WebDriverExtensionCommand for GeckoExtensionCommand {
@@ -120,6 +138,9 @@ impl WebDriverExtensionCommand for GeckoExtensionCommand {
             &GeckoExtensionCommand::SetContext(ref x) => Some(x.to_json()),
             &GeckoExtensionCommand::XblAnonymousChildren(_) => None,
             &GeckoExtensionCommand::XblAnonymousByAttribute(_, ref x) => Some(x.to_json()),
+            // TODO
+            &GeckoExtensionCommand::InstallAddon(ref x) => Some(x.to_json()),
+            &GeckoExtensionCommand::UninstallAddon(_) => None,
         }
     }
 }
@@ -230,6 +251,57 @@ impl ToMarionette for AttributeParameters {
         let mut value = BTreeMap::new();
         value.insert(self.name.to_owned(), self.value.to_json());
         data.insert("value".to_owned(), Json::Object(value));
+        Ok(data)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AddonParameters {
+    pub path: String,
+    pub temporary: bool
+}
+
+impl Parameters for AddonParameters {
+    fn from_json(body: &Json) -> WebDriverResult<AddonParameters> {
+        let data = try!(body.as_object().ok_or(
+            WebDriverError::new(ErrorStatus::InvalidArgument,
+                                "Message body was not an object")));
+
+        let path = try_opt!(
+            try_opt!(data.get("path"),
+                     ErrorStatus::InvalidArgument,
+                     "Missing 'path' parameter").as_string(),
+            ErrorStatus::InvalidArgument,
+            "'path' is not a string").to_string();
+
+        let temporary = match data.get("temporary") {
+            Some(x) => try_opt!(x.as_boolean(),
+                                ErrorStatus::InvalidArgument,
+                                "Failed to convert 'temporary' to boolean"),
+            None => false
+        };
+
+        return Ok(AddonParameters {
+            path: path,
+            temporary: temporary,
+        })
+    }
+}
+
+impl ToJson for AddonParameters {
+    fn to_json(&self) -> Json {
+        let mut data = BTreeMap::new();
+        data.insert("path".to_string(), self.path.to_json());
+        data.insert("temporary".to_string(), self.temporary.to_json());
+        Json::Object(data)
+    }
+}
+
+impl ToMarionette for AddonParameters {
+    fn to_marionette(&self) -> WebDriverResult<BTreeMap<String, Json>> {
+        let mut data = BTreeMap::new();
+        data.insert("path".to_string(), self.path.to_json());
+        data.insert("temporary".to_string(), self.temporary.to_json());
         Ok(data)
     }
 }
@@ -743,7 +815,14 @@ impl MarionetteSession {
                         let el = try!(self.to_web_element(try_opt!(resp.result.find("value"),
                             ErrorStatus::UnknownError, "Failed to find value field")));
                         WebDriverResponse::Generic(ValueResponse::new(el.to_json()))
-                    }
+                    },
+                    &GeckoExtensionCommand::InstallAddon(_) => {
+                        let value = try_opt!(resp.result.find("value"),
+                                             ErrorStatus::UnknownError,
+                                             "Failed to find value field");
+                        WebDriverResponse::Generic(ValueResponse::new(value.clone()))
+                    },
+                    &GeckoExtensionCommand::UninstallAddon(_) => WebDriverResponse::Void
                 }
             }
         })
@@ -1001,6 +1080,14 @@ impl MarionetteCommand {
                         let mut data = try!(x.to_marionette());
                         data.insert("element".to_string(), e.id.to_json());
                         (Some("findElement"), Some(Ok(data)))
+                    },
+                    &GeckoExtensionCommand::InstallAddon(ref x) => {
+                        (Some("addon:install"), Some(x.to_marionette()))
+                    },
+                    &GeckoExtensionCommand::UninstallAddon(ref x) => {
+                        let mut data = BTreeMap::new();
+                        data.insert("id".to_string(), x.to_json());
+                        (Some("addon:uninstall"), Some(Ok(data)))
                     }
                 }
             }
