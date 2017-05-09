@@ -1231,7 +1231,7 @@ impl MarionetteError {
             ErrorStatus::UnknownError,
             "Error message was not a string").into();
 
-        let stacktrace = match data.find("stacktrace") {
+        let stacktrace = match data.find("stackTrace") {
             None | Some(&Json::Null) => None,
             Some(x) => Some(try_opt!(x.as_string(),
                                      ErrorStatus::UnknownError,
@@ -1246,7 +1246,7 @@ impl ToJson for MarionetteError {
         let mut data = BTreeMap::new();
         data.insert("status".into(), self.status.to_json());
         data.insert("message".into(), self.message.to_json());
-        data.insert("stacktrace".into(), self.stacktrace.to_json());
+        data.insert("stackTrace".into(), self.stacktrace.to_json());
         Json::Object(data)
     }
 }
