@@ -302,6 +302,18 @@ impl FirefoxOptions {
                                   .path()));
 
             Ok(Some(profile))
+        } else if let Some(profile_path_json) = options.get("profilePath") {
+            let profile_path = try!(profile_path_json
+                                    .as_string()
+                                    .ok_or(
+                                        WebDriverError::new(ErrorStatus::UnknownError,
+                                                            "Profile path was not a string")));
+            let profile_path = Path::new(profile_path);
+            if !profile_path.exists() {
+                try!(fs::create_dir(profile_path));
+            }
+            let profile = try!(Profile::new(Some(profile_path)));
+            Ok(Some(profile))
         } else {
             Ok(None)
         }
