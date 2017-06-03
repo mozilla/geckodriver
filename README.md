@@ -1,4 +1,4 @@
-# geckodriver [![Build Status](https://travis-ci.org/mozilla/geckodriver.svg?branch=master)](https://travis-ci.org/mozilla/geckodriver)
+# geckodriver
 
 Proxy for using W3C WebDriver-compatible clients
 to interact with Gecko-based browsers.
@@ -533,3 +533,17 @@ Or if you want a non-optimised binary for debugging:
 [WebDriver]: https://w3c.github.io/webdriver/webdriver-spec.html
 [Marionette]: http://searchfox.org/mozilla-central/source/testing/marionette/README
 [Rust compiler toolchain]: https://rustup.rs/
+
+## Contributing
+
+The canonical source code repository for geckodriver
+now lives in [mozilla-central] under [testing/geckodriver].
+You can read more about [working with Mozilla source code] on MDN.
+This means we do no longer accept pull requests on GitHub.
+Patches should be uploaded to a bug
+in the [Testing :: GeckoDriver] component.
+
+[mozilla-central]: https://hg.mozilla.org/mozilla-central/
+[testing/geckodriver]: https://hg.mozilla.org/mozilla-central/file/tip/testing/geckodriver
+[working with Mozilla source code]: https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Source_Code
+[Testing :: geckodriver]: https://bugzilla.mozilla.org/buglist.cgi?product=Testing&component=geckodriver&resolution=---&list_id=13613952
