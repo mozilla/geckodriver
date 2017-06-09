@@ -39,7 +39,7 @@ and [specification](https://github.com/mozilla/geckodriver/issues?q=is%3Aissue+i
 problems in our
 [issue tracker](https://github.com/mozilla/geckodriver/issues).
 
-Support is best in Firefox 52.0.3 and onwards,
+Support is best in Firefox 53 and greater,
 although generally the more recent the Firefox version,
 the better the experience as they have more bug fixes and features.
 Some features will only be available in the most recent Firefox versions,
