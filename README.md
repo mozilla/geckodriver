@@ -3,18 +3,30 @@
 Proxy for using W3C WebDriver-compatible clients
 to interact with Gecko-based browsers.
 
-This program provides the HTTP API described by
-the [WebDriver protocol](http://w3c.github.io/webdriver/webdriver-spec.html#protocol)
+This program provides the HTTP API described by the [WebDriver protocol]
 to communicate with Gecko browsers, such as Firefox.
-It translates calls into
-the [Marionette automation protocol](https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette)
+It translates calls into the [Firefox remote protocol]
 by acting as a proxy between the local- and remote ends.
 
-You can consult the [change log](https://github.com/mozilla/geckodriver/blob/master/CHANGES.md)
-for a record of all notable changes to the program.
-[Releases](https://github.com/mozilla/geckodriver/releases)
-are made available on GitHub
-on [supported platforms](#supported-firefoxen).
+You can consult the [change log] for a record of all notable changes to the program.
+[Releases] are made available on GitHub on [supported platforms].
+
+The canonical source code repository for geckodriver
+now lives in [mozilla-central] under [testing/geckodriver].
+You can read more about [working with Mozilla source code] on MDN.
+This means we do no longer accept pull requests on GitHub.
+Patches should be uploaded to a bug
+in the [Testing :: GeckoDriver] component.
+
+[WebDriver protocol]: http://w3c.github.io/webdriver/webdriver-spec.html#protocol
+[Firefox remote protocol]: https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette
+[change log]: https://github.com/mozilla/geckodriver/blob/master/CHANGES.md
+[Releases]: https://github.com/mozilla/geckodriver/releases
+[supported platforms]: #supported-firefoxen
+[mozilla-central]: https://hg.mozilla.org/mozilla-central/
+[testing/geckodriver]: https://hg.mozilla.org/mozilla-central/file/tip/testing/geckodriver
+[working with Mozilla source code]: https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Source_Code
+[Testing :: geckodriver]: https://bugzilla.mozilla.org/buglist.cgi?product=Testing&component=geckodriver&resolution=---&list_id=13613952
 
 ## Supported clients
 
@@ -534,16 +546,3 @@ Or if you want a non-optimised binary for debugging:
 [Marionette]: http://searchfox.org/mozilla-central/source/testing/marionette/README
 [Rust compiler toolchain]: https://rustup.rs/
 
-## Contributing
-
-The canonical source code repository for geckodriver
-now lives in [mozilla-central] under [testing/geckodriver].
-You can read more about [working with Mozilla source code] on MDN.
-This means we do no longer accept pull requests on GitHub.
-Patches should be uploaded to a bug
-in the [Testing :: GeckoDriver] component.
-
-[mozilla-central]: https://hg.mozilla.org/mozilla-central/
-[testing/geckodriver]: https://hg.mozilla.org/mozilla-central/file/tip/testing/geckodriver
-[working with Mozilla source code]: https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Source_Code
-[Testing :: geckodriver]: https://bugzilla.mozilla.org/buglist.cgi?product=Testing&component=geckodriver&resolution=---&list_id=13613952
