@@ -25,7 +25,7 @@ use webdriver::command::WebDriverCommand::{
     NewSession, DeleteSession, Status, Get, GetCurrentUrl,
     GoBack, GoForward, Refresh, GetTitle, GetPageSource, GetWindowHandle,
     GetWindowHandles, CloseWindow, SetWindowRect,
-    GetWindowRect, MaximizeWindow, FullscreenWindow, SwitchToWindow, SwitchToFrame,
+    GetWindowRect, MinimizeWindow, MaximizeWindow, FullscreenWindow, SwitchToWindow, SwitchToFrame,
     SwitchToParentFrame, FindElement, FindElements,
     FindElementElement, FindElementElements, GetActiveElement,
     IsDisplayed, IsSelected, GetElementAttribute, GetElementProperty, GetCSSValue,
@@ -637,7 +637,7 @@ impl MarionetteSession {
         Ok(match msg.command {
             // Everything that doesn't have a response value
             Get(_) | GoBack | GoForward | Refresh | SetTimeouts(_) |
-            MaximizeWindow | SwitchToWindow(_) | SwitchToFrame(_) |
+            MinimizeWindow | MaximizeWindow | SwitchToWindow(_) | SwitchToFrame(_) |
             SwitchToParentFrame | AddCookie(_) | DeleteCookies | DeleteCookie(_) |
             DismissAlert | AcceptAlert | SendAlertText(_) | ElementClick(_) |
             ElementTap(_) | ElementClear(_) | ElementSendKeys(_, _) |
@@ -1067,6 +1067,7 @@ impl MarionetteCommand {
             SetTimeouts(ref x) => (Some("timeouts"), Some(x.to_marionette())),
             SetWindowRect(ref x) => (Some("setWindowRect"), Some(x.to_marionette())),
             GetWindowRect => (Some("getWindowRect"), None),
+            MinimizeWindow => (Some("minimizeWindow"), None),
             MaximizeWindow => (Some("maximizeWindow"), None),
             FullscreenWindow => (Some("fullscreenWindow"), None),
             SwitchToWindow(ref x) => (Some("switchToWindow"), Some(x.to_marionette())),
