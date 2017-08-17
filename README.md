@@ -1,3 +1,11 @@
+# PROJECT MOVED
+The canonical source code repository for geckodriver
+now lives in [mozilla-central] under [testing/geckodriver].
+You can read more about [working with Mozilla source code] on MDN.
+This means we do no longer accept pull requests on GitHub.
+Patches should be uploaded to a bug
+in the [Testing :: GeckoDriver] component.
+
 # geckodriver [![Build Status](https://travis-ci.org/mozilla/geckodriver.svg?branch=release)](https://travis-ci.org/mozilla/geckodriver)
 
 Proxy for using W3C WebDriver-compatible clients
@@ -10,13 +18,6 @@ by acting as a proxy between the local- and remote ends.
 
 You can consult the [change log] for a record of all notable changes to the program.
 [Releases] are made available on GitHub on [supported platforms].
-
-The canonical source code repository for geckodriver
-now lives in [mozilla-central] under [testing/geckodriver].
-You can read more about [working with Mozilla source code] on MDN.
-This means we do no longer accept pull requests on GitHub.
-Patches should be uploaded to a bug
-in the [Testing :: GeckoDriver] component.
 
 [WebDriver protocol]: http://w3c.github.io/webdriver/webdriver-spec.html#protocol
 [Firefox remote protocol]: https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette
