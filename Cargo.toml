@@ -28,7 +28,7 @@ slog-atomic = "0.4"
 slog-stdlog = "1"
 slog-stream = "1"
 uuid = "0.1.18"
-webdriver = { path = "../webdriver" }
+webdriver = "0.31.0"
 zip = "0.1"
 
 [[bin]]
