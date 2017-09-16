@@ -5,10 +5,13 @@ use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
 use mozrunner::runner::{Runner, FirefoxRunner};
 use regex::Captures;
+use rustc_serialize::base64::FromBase64;
 use rustc_serialize::json;
 use rustc_serialize::json::{Json, ToJson};
 use std::collections::BTreeMap;
+use std::env;
 use std::error::Error;
+use std::fs::File;
 use std::io::Error as IoError;
 use std::io::ErrorKind;
 use std::io::prelude::*;
@@ -18,14 +21,15 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
+use uuid::Uuid;
 use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{WebDriverCommand, WebDriverMessage, Parameters,
                          WebDriverExtensionCommand};
 use webdriver::command::WebDriverCommand::{
     NewSession, DeleteSession, Status, Get, GetCurrentUrl,
     GoBack, GoForward, Refresh, GetTitle, GetPageSource, GetWindowHandle,
-    GetWindowHandles, CloseWindow, SetWindowRect,
-    GetWindowRect, MaximizeWindow, FullscreenWindow, SwitchToWindow, SwitchToFrame,
+    GetWindowHandles, CloseWindow, SetWindowRect, GetWindowRect,
+    MinimizeWindow, MaximizeWindow, FullscreenWindow, SwitchToWindow, SwitchToFrame,
     SwitchToParentFrame, FindElement, FindElements,
     FindElementElement, FindElementElements, GetActiveElement,
     IsDisplayed, IsSelected, GetElementAttribute, GetElementProperty, GetCSSValue,
@@ -41,8 +45,8 @@ use webdriver::command::{
     GetNamedCookieParameters, AddCookieParameters, TimeoutsParameters,
     ActionsParameters, TakeScreenshotParameters};
 use webdriver::response::{CloseWindowResponse, Cookie, CookieResponse, CookiesResponse,
-                          NewSessionResponse, RectResponse, TimeoutsResponse, ValueResponse,
-                          WebDriverResponse};
+                          ElementRectResponse, NewSessionResponse, TimeoutsResponse,
+                          ValueResponse, WebDriverResponse, WindowRectResponse};
 use webdriver::common::{Date, ELEMENT_KEY, FrameId, Nullable, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::server::{WebDriverHandler, Session};
@@ -263,12 +267,35 @@ impl Parameters for AddonInstallParameters {
             WebDriverError::new(ErrorStatus::InvalidArgument,
                                 "Message body was not an object")));
 
-        let path = try_opt!(
-            try_opt!(data.get("path"),
-                     ErrorStatus::InvalidArgument,
-                     "Missing 'path' parameter").as_string(),
-            ErrorStatus::InvalidArgument,
-            "'path' is not a string").to_string();
+        let base64 = match data.get("addon") {
+            Some(x) => {
+                let s = try_opt!(x.as_string(),
+                                 ErrorStatus::InvalidArgument,
+                                 "'addon' is not a string").to_string();
+
+                let addon_path = env::temp_dir().as_path()
+                    .join(format!("addon-{}.xpi", Uuid::new_v4()));
+                let mut addon_file = try!(File::create(&addon_path));
+                let addon_buf = try!(s.from_base64());
+                try!(addon_file.write(addon_buf.as_slice()));
+
+                Some(try_opt!(addon_path.to_str(),
+                              ErrorStatus::UnknownError,
+                              "could not write addon to file").to_string())
+            },
+            None => None,
+        };
+        let path = match data.get("path") {
+            Some(x) => Some(try_opt!(x.as_string(),
+                                     ErrorStatus::InvalidArgument,
+                                     "'path' is not a string").to_string()),
+            None => None,
+        };
+        if (base64.is_none() && path.is_none()) || (base64.is_some() && path.is_some()) {
+            return Err(WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "Must specify exactly one of 'path' and 'addon'"));
+        }
 
         let temporary = match data.get("temporary") {
             Some(x) => try_opt!(x.as_boolean(),
@@ -278,7 +305,7 @@ impl Parameters for AddonInstallParameters {
         };
 
         return Ok(AddonInstallParameters {
-            path: path,
+            path: base64.or(path).unwrap(),
             temporary: temporary,
         })
     }
@@ -401,7 +428,7 @@ impl MarionetteHandler {
         }
 
         let mut connection = MarionetteConnection::new(port, session_id.clone());
-        try!(connection.connect());
+        try!(connection.connect(&mut self.browser));
         self.connection = Mutex::new(Some(connection));
 
         Ok(capabilities)
@@ -424,6 +451,11 @@ impl MarionetteHandler {
         // double-dashed flags are not accepted on Windows systems
         runner.args().push("-marionette".to_owned());
 
+        // https://developer.mozilla.org/docs/Environment_variables_affecting_crash_reporting
+        runner.envs().insert("MOZ_CRASHREPORTER".to_string(), "1".to_string());
+        runner.envs().insert("MOZ_CRASHREPORTER_NO_REPORT".to_string(), "1".to_string());
+        runner.envs().insert("MOZ_CRASHREPORTER_SHUTDOWN".to_string(), "1".to_string());
+
         if let Some(args) = options.args.take() {
             runner.args().extend(args);
         };
@@ -434,7 +466,6 @@ impl MarionetteHandler {
                                     format!("Failed to set preferences: {}", e))
             }));
 
-        info!("Starting browser {} with args {:?}", binary.display(), runner.args());
         try!(runner.start()
             .map_err(|e| {
                 WebDriverError::new(ErrorStatus::SessionNotCreated,
@@ -461,13 +492,10 @@ impl MarionetteHandler {
 
         prefs.insert_slice(&extra_prefs[..]);
 
-        // fallbacks can be removed when Firefox 54 becomes stable
         if let Some(ref level) = self.current_log_level {
             prefs.insert("marionette.log.level", Pref::new(level.to_string()));
-            prefs.insert("marionette.logging", Pref::new(level.to_string()));  // fallback
         };
         prefs.insert("marionette.port", Pref::new(port as i64));
-        prefs.insert("marionette.defaultPrefs.port", Pref::new(port as i64));  // fallback
 
         prefs.write().map_err(|_| WebDriverError::new(ErrorStatus::UnknownError,
                                                       "Unable to write Firefox profile"))
@@ -524,7 +552,16 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
         match self.connection.lock() {
             Ok(ref mut connection) => {
                 match connection.as_mut() {
-                    Some(conn) => conn.send_command(resolved_capabilities, &msg),
+                    Some(conn) => {
+                        conn.send_command(resolved_capabilities, &msg)
+                            .map_err(|mut err| {
+                                // Shutdown the browser if no session can
+                                // be established due to errors.
+                                if let NewSession(_) = msg.command {
+                                    err.delete_session=true;
+                                }
+                                err})
+                    },
                     None => panic!("Connection missing")
                 }
             },
@@ -733,39 +770,46 @@ impl MarionetteSession {
                     ErrorStatus::UnknownError,
                     "Failed to interpret width as float");
 
-                WebDriverResponse::ElementRect(RectResponse::new(x, y, width, height))
+                let rect = ElementRectResponse { x, y, width, height };
+                WebDriverResponse::ElementRect(rect)
             },
-            FullscreenWindow | MaximizeWindow | GetWindowRect |
+            FullscreenWindow | MinimizeWindow | MaximizeWindow | GetWindowRect |
             SetWindowRect(_) => {
                 let width = try_opt!(
                     try_opt!(resp.result.find("width"),
                              ErrorStatus::UnknownError,
-                             "Failed to find width field").as_f64(),
+                             "Failed to find width field").as_u64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret width as float");
+                    "Failed to interpret width as positive integer");
 
                 let height = try_opt!(
                     try_opt!(resp.result.find("height"),
                              ErrorStatus::UnknownError,
-                             "Failed to find height field").as_f64(),
+                             "Failed to find heigenht field").as_u64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret height as float");
+                    "Failed to interpret height as positive integer");
 
                 let x = try_opt!(
                     try_opt!(resp.result.find("x"),
                              ErrorStatus::UnknownError,
-                             "Failed to find x field").as_f64(),
+                             "Failed to find x field").as_i64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret x as float");
+                    "Failed to interpret x as integer");
 
                 let y = try_opt!(
                     try_opt!(resp.result.find("y"),
                              ErrorStatus::UnknownError,
-                             "Failed to find y field").as_f64(),
+                             "Failed to find y field").as_i64(),
                     ErrorStatus::UnknownError,
-                    "Failed to interpret y as float");
+                    "Failed to interpret y as integer");
 
-                WebDriverResponse::WindowRect(RectResponse::new(x, y, width, height))
+                let rect = WindowRectResponse {
+                    x: x as i32,
+                    y: y as i32,
+                    width: width as i32,
+                    height: height as i32,
+                };
+                WebDriverResponse::WindowRect(rect)
             },
             GetCookies => {
                 let cookies = try!(self.process_cookies(&resp.result));
@@ -1012,8 +1056,9 @@ impl MarionetteCommand {
             SetTimeouts(ref x) => (Some("setTimeouts"), Some(x.to_marionette())),
             SetWindowRect(ref x) => (Some("setWindowRect"), Some(x.to_marionette())),
             GetWindowRect => (Some("getWindowRect"), None),
+            MinimizeWindow => (Some("WebDriver:MinimizeWindow"), None),
             MaximizeWindow => (Some("maximizeWindow"), None),
-            FullscreenWindow => (Some("fullscreenWindow"), None),
+            FullscreenWindow => (Some("fullscreen"), None),
             SwitchToWindow(ref x) => (Some("switchToWindow"), Some(x.to_marionette())),
             SwitchToFrame(ref x) => (Some("switchToFrame"), Some(x.to_marionette())),
             SwitchToParentFrame => (Some("switchToParentFrame"), None),
@@ -1283,13 +1328,28 @@ impl MarionetteConnection {
         }
     }
 
-    pub fn connect(&mut self) -> WebDriverResult<()> {
+    pub fn connect(&mut self, browser: &mut Option<FirefoxRunner>) -> WebDriverResult<()> {
         let timeout = 60 * 1000;  // ms
         let poll_interval = 100;  // ms
         let poll_attempts = timeout / poll_interval;
         let mut poll_attempt = 0;
 
         loop {
+            // If the process is gone, immediately abort the connection attempts
+            if let &mut Some(ref mut runner) = browser {
+                let status = runner.status();
+                if status.is_err() || status.as_ref().map(|x| *x).unwrap_or(None) != None {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        format!("Process unexpectedly closed with status: {}", status
+                            .ok()
+                            .and_then(|x| x)
+                            .and_then(|x| x.code())
+                            .map(|x| x.to_string())
+                            .unwrap_or("{unknown}".into()))));
+                }
+            }
+
             match TcpStream::connect(&(DEFAULT_HOST, self.port)) {
                 Ok(stream) => {
                     self.stream = Some(stream);
@@ -1586,5 +1646,51 @@ impl ToMarionette for FrameId {
             FrameId::Null => None
         };
         Ok(data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use marionette::{AddonInstallParameters, Parameters};
+    use rustc_serialize::json::Json;
+    use std::io::Read;
+    use std::fs::File;
+    use webdriver::error::WebDriverResult;
+
+    #[test]
+    fn test_addon_install_params_missing_path() {
+        let json_data: Json = Json::from_str(r#"{"temporary": true}"#).unwrap();
+        let res: WebDriverResult<AddonInstallParameters> = Parameters::from_json(&json_data);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_addon_install_params_with_both_path_and_base64() {
+        let json_data: Json = Json::from_str(
+            r#"{"path": "/path/to.xpi", "addon": "aGVsbG8=", "temporary": true}"#).unwrap();
+        let res: WebDriverResult<AddonInstallParameters> = Parameters::from_json(&json_data);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_addon_install_params_with_path() {
+        let json_data: Json = Json::from_str(
+            r#"{"path": "/path/to.xpi", "temporary": true}"#).unwrap();
+        let parameters: AddonInstallParameters = Parameters::from_json(&json_data).unwrap();
+        assert_eq!(parameters.path, "/path/to.xpi");
+        assert_eq!(parameters.temporary, true);
+    }
+
+    #[test]
+    fn test_addon_install_params_with_base64() {
+        let json_data: Json = Json::from_str(
+            r#"{"addon": "aGVsbG8=", "temporary": true}"#).unwrap();
+        let parameters: AddonInstallParameters = Parameters::from_json(&json_data).unwrap();
+
+        assert_eq!(parameters.temporary, true);
+        let mut file = File::open(parameters.path).unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
+        assert_eq!("hello", contents);
     }
 }
