@@ -164,6 +164,14 @@ geckodriver supports a number of [capabilities]:
  </tr>
 
  <tr>
+  <td><code>noProxy</code>
+  <td>list
+  <td>Lists the addresses for which the proxy should be bypassed.
+   This property should only be set when <code>proxyType</code>
+   is set to <code>manual</code>.
+ </tr>
+
+ <tr>
   <td><code>sslProxy</code>
   <td>string
   <td>Defines the proxy hostname with an optional port for encrypted TLS traffic.
@@ -184,24 +192,6 @@ geckodriver supports a number of [capabilities]:
   <td>number
   <td>Defines the SOCKS proxy version. This property has only to be set
    when <code>proxyType</code> is set to <code>manual</code>.
- </tr>
-
- <tr>
-  <td><code>socksUsername</code>
-  <td>string
-  <td>Defines the username used
-   when authenticating with a SOCKS proxy.
-   This property should only be set
-   when <code>proxyType</code> is <code>manual</code>.
- </tr>
-
- <tr>
-  <td><code>socksPassword</code>
-  <td>string
-  <td>Defines the password used
-   when authenticating with a SOCKS proxy.
-   This property should only be set
-   when <code>proxyType</code> is <code>manual</code>.
  </tr>
 </table>
 
