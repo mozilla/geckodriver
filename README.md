@@ -33,11 +33,11 @@ the [Testing :: GeckoDriver] component.
 Supported clients
 =================
 
-[Selenium] users must update to [version
-3.5](https://github.com/SeleniumHQ/selenium/releases/tag/selenium-3.5.0)
-or later to use geckodriver.  Other clients that follow the [W3C WebDriver
+[Selenium] users must update to [version 3.5] or later to
+use geckodriver.  Other clients that follow the [W3C WebDriver
 specification] are also supported.
 
+[version 3.5]: https://github.com/SeleniumHQ/selenium/releases/tag/selenium-3.5.0
 [W3C WebDriver specification]: https://w3c.github.io/webdriver/webdriver-spec.html
 
 
@@ -164,6 +164,14 @@ geckodriver supports a number of [capabilities]:
  </tr>
 
  <tr>
+  <td><code>noProxy</code>
+  <td>list
+  <td>Lists the addresses for which the proxy should be bypassed.
+   This property should only be set when <code>proxyType</code>
+   is set to <code>manual</code>.
+ </tr>
+
+ <tr>
   <td><code>sslProxy</code>
   <td>string
   <td>Defines the proxy hostname with an optional port for encrypted TLS traffic.
@@ -185,34 +193,20 @@ geckodriver supports a number of [capabilities]:
   <td>Defines the SOCKS proxy version. This property has only to be set
    when <code>proxyType</code> is set to <code>manual</code>.
  </tr>
-
- <tr>
-  <td><code>socksUsername</code>
-  <td>string
-  <td>Defines the username used
-   when authenticating with a SOCKS proxy.
-   This property should only be set
-   when <code>proxyType</code> is <code>manual</code>.
- </tr>
-
- <tr>
-  <td><code>socksPassword</code>
-  <td>string
-  <td>Defines the password used
-   when authenticating with a SOCKS proxy.
-   This property should only be set
-   when <code>proxyType</code> is <code>manual</code>.
- </tr>
 </table>
 
 
 Firefox capabilities
 ====================
 
-geckodriver also supports a capability named `moz:firefoxOptions`
-which takes Firefox-specific options.
-This must be a dictionary
-and may contain any of the following fields:
+geckodriver also supports capabilities with the `moz:` prefix, which can
+be used to define Firefox-specific capabilities.
+
+moz:firefoxOptions
+------------------
+
+A dictionary used to define options which control how Firefox gets started
+and run. It may contain any of the following fields:
 
 <table>
  <thead>
@@ -285,6 +279,25 @@ and may contain any of the following fields:
    string, a boolean or an integer.
  </tr>
 </table>
+
+moz:webdriverClick
+------------------
+
+A boolean value to indicate which kind of interactability checks to run
+when performing a click on elements. For Firefoxen prior to version 58.0 some
+legacy code as imported from an older version of [FirefoxDriver] was in use.
+
+With Firefox 58 the interactability checks as required by the [WebDriver]
+specification are enabled by default. This means geckodriver will additionally
+check if an element is obscured by another when clicking.
+
+Because of this change in behaviour, we are aware that some extra errors could
+be returned. In most cases the test in question might have to be updated
+so it's conform with the new checks. But if the problem is located in
+geckodriver, then please raise an issue in the [issue tracker].
+
+To temporarily disable the WebDriver conformant checks use `false` as value
+for this capability.
 
 
 `log` object
@@ -569,6 +582,7 @@ alongside _firefox-bin_.
 [errors]: https://docs.rs/webdriver/0.25.0/webdriver/error/enum.ErrorStatus.html
 [Marionette protocol]: https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette/Protocol
 [WebDriver]: https://w3c.github.io/webdriver/webdriver-spec.html
+[FirefoxDriver]: https://github.com/SeleniumHQ/selenium/wiki/FirefoxDriver
 [Marionette]: http://searchfox.org/mozilla-central/source/testing/marionette/README
 [Firefox CI]: https://treeherder.mozilla.org/
 [mozconfig]: https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Build_Instructions/Configuring_Build_Options
