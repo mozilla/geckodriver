@@ -41,7 +41,7 @@ specification] are also supported.
 [W3C WebDriver specification]: https://w3c.github.io/webdriver/webdriver-spec.html
 
 
-Supported Firefoxen
+Supported Firefox Versions
 ===================
 
 geckodriver is not yet feature complete.  This means that it does not
@@ -284,7 +284,7 @@ moz:webdriverClick
 ------------------
 
 A boolean value to indicate which kind of interactability checks to run
-when performing a click or sending keys to an elements. For Firefoxen prior to
+when performing a click or sending keys to an elements. For Firefox prior to
 version 58.0 some legacy code as imported from an older version of
 [FirefoxDriver] was in use.
 
@@ -354,7 +354,7 @@ Capabilities example
 
 The following example selects a specific Firefox binary to run with
 a prepared profile from the filesystem in headless mode (available on
-certain systems and recent Firefoxen).  It also increases the number of
+certain systems and recent Firefox versions).  It also increases the number of
 IPC processes through a preference and enables more verbose logging.
 
 	{
