@@ -21,7 +21,7 @@ the [Testing :: GeckoDriver] component.
 
 [WebDriver protocol]: http://w3c.github.io/webdriver/webdriver-spec.html#protocol
 [Firefox remote protocol]: https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette
-[change log]: https://github.com/mozilla/geckodriver/blob/master/CHANGES.md
+[change log]: https://searchfox.org/mozilla-central/source/testing/geckodriver/CHANGES.md
 [Releases]: https://github.com/mozilla/geckodriver/releases
 [supported platforms]: #supported-firefoxen
 [mozilla-central]: https://hg.mozilla.org/mozilla-central/
@@ -90,6 +90,7 @@ geckodriver supports a number of [capabilities]:
   <td>Boolean initially set to false,
    indicating the session will not implicitly trust untrusted
    or self-signed TLS certificates on navigation.
+  <td>
  </tr>
 
  <tr>
@@ -104,6 +105,7 @@ geckodriver supports a number of [capabilities]:
    waiting for the <code>complete</code> ready state;
    or "<code>none</code>",
    which will return immediately after starting navigation.
+  <td>
  </tr>
 
  <tr>
@@ -199,8 +201,7 @@ geckodriver supports a number of [capabilities]:
 Firefox capabilities
 ====================
 
-geckodriver also supports capabilities with the `moz:` prefix, which can
-be used to define Firefox-specific capabilities.
+geckodriver has a few capabilities that are specific to Firefox.
 
 moz:firefoxOptions
 ------------------
@@ -279,6 +280,23 @@ and run. It may contain any of the following fields:
    string, a boolean or an integer.
  </tr>
 </table>
+
+moz:useNonSpecCompliantPointerOrigin
+------------------------------------
+
+A boolean value to indicate how the pointer origin for an action command
+will be calculated.
+
+With Firefox 59 the calculation will be based on the requirements by the
+[WebDriver] specification. This means that the pointer origin is no longer
+computed based on the top and left position of the referenced element, but
+on the in-view center point.
+
+To temporarily disable the WebDriver conformant behavior use `false` as value
+for this capability.
+
+Please note that this capability exists only temporarily, and that it will be
+removed once all Selenium bindings can handle the new behavior.
 
 moz:webdriverClick
 ------------------
@@ -552,6 +570,13 @@ A helpful trick is that it is possible to bind to 0 to get the system
 to atomically assign a free port.
 
 
+#### <code>--jsdebugger</code>
+
+Attach [browser toolbox] debugger when Firefox starts.  This is
+useful for debugging [Marionette] internals.
+
+[browser toolbox]: https://developer.mozilla.org/en-US/docs/Tools/Browser_Toolbox
+
 #### <code>-v<var>[v]</var></code>
 
 Increases the logging verbosity by to debug level when passing a single
@@ -575,15 +600,16 @@ ensure you put this in your [mozconfig]:
 
 	ac_add_options --enable-geckodriver
 
-The _geckodriver_ binary will appear in `${objdir}/dist/bin/geckodriver`
-alongside _firefox-bin_.
+You build geckodriver with the `./mach build testing/geckodriver`
+command, run tests with `./mach test testing/geckodriver`, and run
+the built executable with `./mach geckodriver -- --other --flags`.
 
 [Rust]: https://www.rust-lang.org/
 [Mozilla]: https://www.mozilla.org/en-US/
-[webdriver crate]: https://github.com/mozilla/webdriver-rust
-[commands]: https://docs.rs/webdriver/0.25.0/webdriver/command/index.html
-[responses]: https://docs.rs/webdriver/0.25.0/webdriver/response/index.html
-[errors]: https://docs.rs/webdriver/0.25.0/webdriver/error/enum.ErrorStatus.html
+[webdriver crate]: https://crates.io/crates/webdriver
+[commands]: https://docs.rs/webdriver/newest/webdriver/command/index.html
+[responses]: https://docs.rs/webdriver/newest/webdriver/response/index.html
+[errors]: https://docs.rs/webdriver/newest/webdriver/error/enum.ErrorStatus.html
 [Marionette protocol]: https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette/Protocol
 [WebDriver]: https://w3c.github.io/webdriver/webdriver-spec.html
 [FirefoxDriver]: https://github.com/SeleniumHQ/selenium/wiki/FirefoxDriver
