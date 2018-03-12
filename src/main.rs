@@ -9,11 +9,6 @@ extern crate mozrunner;
 extern crate mozversion;
 extern crate regex;
 extern crate rustc_serialize;
-#[macro_use]
-extern crate slog;
-extern crate slog_atomic;
-extern crate slog_stdlog;
-extern crate slog_stream;
 extern crate uuid;
 extern crate zip;
 extern crate webdriver;
@@ -43,7 +38,6 @@ mod prefs;
 mod marionette;
 mod capabilities;
 
-use logging::LogLevel;
 use marionette::{MarionetteHandler, MarionetteSettings, extension_routes};
 
 include!(concat!(env!("OUT_DIR"), "/build-info.rs"));
@@ -123,6 +117,10 @@ fn app<'a, 'b>() -> App<'a, 'b> {
             .long("connect-existing")
             .requires("marionette_port")
             .help("Connect to an existing Firefox instance"))
+        .arg(Arg::with_name("jsdebugger")
+            .long("jsdebugger")
+            .takes_value(false)
+            .help("Attach browser toolbox debugger for Firefox"))
         .arg(Arg::with_name("verbosity")
             .short("v")
             .multiple(true)
@@ -176,23 +174,27 @@ fn run() -> ProgramResult {
     };
 
     let log_level = if matches.is_present("log_level") {
-        LogLevel::from_str(matches.value_of("log_level").unwrap()).ok()
+        logging::Level::from_str(matches.value_of("log_level").unwrap()).ok()
     } else {
         match matches.occurrences_of("verbosity") {
-            0 => Some(LogLevel::Info),
-            1 => Some(LogLevel::Debug),
-            _ => Some(LogLevel::Trace),
+            0 => Some(logging::Level::Info),
+            1 => Some(logging::Level::Debug),
+            _ => Some(logging::Level::Trace),
         }
     };
-    logging::init(&log_level);
+    if let Some(ref level) = log_level {
+        logging::init_with_level(level.clone()).unwrap();
+    } else {
+        logging::init().unwrap();
+    }
 
     info!("geckodriver {}", BuildInfo);
 
     let settings = MarionetteSettings {
         port: marionette_port,
-        binary: binary,
+        binary,
         connect_existing: matches.is_present("connect_existing"),
-        log_level: log_level,
+        jsdebugger: matches.is_present("jsdebugger"),
     };
     let handler = MarionetteHandler::new(settings);
     let listening = webdriver::server::start(addr, handler, &extension_routes()[..])

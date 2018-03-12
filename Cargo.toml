@@ -1,7 +1,6 @@
 [package]
 name = "geckodriver"
-version = "0.19.1"
-authors = ["Mozilla <tools-marionette@lists.mozilla.org>"]
+version = "0.20.0"
 description = "Proxy for using WebDriver clients to interact with Gecko-based browsers."
 keywords = ["webdriver", "w3c", "httpd", "mozilla", "firefox"]
 repository = "https://hg.mozilla.org/mozilla-central/file/tip/testing/geckodriver"
@@ -13,20 +12,16 @@ publish = false
 chrono = "^0.2"
 clap = { version = "^2.19", default-features = false, features = ["suggestions", "wrap_help"] }
 hyper = "0.10"
-lazy_static = "0.1"
-log = "0.3"
+lazy_static = "1.0"
+log = { version = "0.4", features = ["std"] }
 mozprofile = "0.3.0"
-mozrunner = "0.5.0"
-mozversion = "0.1.2"
+mozrunner = "0.6.0"
+mozversion = "0.1.3"
 regex = "0.2"
 rustc-serialize = "0.3"
-slog = "1"
-slog-atomic = "0.4"
-slog-stdlog = "1"
-slog-stream = "1"
 uuid = "0.1.18"
-webdriver = "0.32.0"
-zip = "0.1"
+webdriver = "0.35.0"
+zip = "0.3"
 
 [[bin]]
 name = "geckodriver"

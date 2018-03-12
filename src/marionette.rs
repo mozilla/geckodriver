@@ -1,9 +1,7 @@
 use hyper::method::Method;
-use logging;
-use logging::LogLevel;
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
-use mozrunner::runner::{Runner, FirefoxRunner};
+use mozrunner::runner::{FirefoxRunner, FirefoxProcess, Runner, RunnerProcess};
 use regex::Captures;
 use rustc_serialize::base64::FromBase64;
 use rustc_serialize::json;
@@ -19,8 +17,8 @@ use std::path::PathBuf;
 use std::io::Result as IoResult;
 use std::net::{TcpListener, TcpStream};
 use std::sync::Mutex;
-use std::thread::sleep;
-use std::time::Duration;
+use std::thread;
+use std::time;
 use uuid::Uuid;
 use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{WebDriverCommand, WebDriverMessage, Parameters,
@@ -53,6 +51,7 @@ use webdriver::server::{WebDriverHandler, Session};
 use webdriver::httpapi::{WebDriverExtensionRoute};
 
 use capabilities::{FirefoxCapabilities, FirefoxOptions};
+use logging;
 use prefs;
 
 const DEFAULT_HOST: &'static str = "localhost";
@@ -369,7 +368,7 @@ impl ToMarionette for AddonUninstallParameters {
 
 #[derive(Default)]
 pub struct LogOptions {
-    pub level: Option<LogLevel>,
+    pub level: Option<logging::Level>,
 }
 
 #[derive(Default)]
@@ -378,26 +377,23 @@ pub struct MarionetteSettings {
     pub binary: Option<PathBuf>,
     pub connect_existing: bool,
 
-    /// Optionally increase Marionette's verbosity by providing a log
-    /// level. The Gecko default is LogLevel::Info for optimised
-    /// builds and LogLevel::Debug for debug builds.
-    pub log_level: Option<LogLevel>,
+    /// Brings up the Browser Toolbox when starting Firefox,
+    /// letting you debug internals.
+    pub jsdebugger: bool,
 }
 
 pub struct MarionetteHandler {
     connection: Mutex<Option<MarionetteConnection>>,
     settings: MarionetteSettings,
-    browser: Option<FirefoxRunner>,
-    current_log_level: Option<LogLevel>,
+    browser: Option<FirefoxProcess>,
 }
 
 impl MarionetteHandler {
     pub fn new(settings: MarionetteSettings) -> MarionetteHandler {
         MarionetteHandler {
             connection: Mutex::new(None),
-            settings: settings,
+            settings,
             browser: None,
-            current_log_level: None,
         }
     }
 
@@ -419,8 +415,9 @@ impl MarionetteHandler {
             (options, capabilities)
         };
 
-        self.current_log_level = options.log.level.clone().or(self.settings.log_level.clone());
-        logging::init(&self.current_log_level);
+        if let Some(l) = options.log.level {
+            logging::set_max_level(l);
+        }
 
         let port = self.settings.port.unwrap_or(try!(get_free_port()));
         if !self.settings.connect_existing {
@@ -434,45 +431,51 @@ impl MarionetteHandler {
         Ok(capabilities)
     }
 
-    fn start_browser(&mut self, port: u16, mut options: FirefoxOptions) -> WebDriverResult<()> {
-        let binary = try!(options.binary
+    fn start_browser(&mut self, port: u16, options: FirefoxOptions) -> WebDriverResult<()> {
+        let binary = options.binary
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated,
                                        "Expected browser binary location, but unable to find \
                                         binary in default location, no \
                                         'moz:firefoxOptions.binary' capability provided, and \
-                                        no binary flag set on the command line")));
+                                        no binary flag set on the command line"))?;
 
-        let custom_profile = options.profile.is_some();
+        let is_custom_profile = options.profile.is_some();
 
-        let mut runner = try!(FirefoxRunner::new(&binary, options.profile.take())
-                              .map_err(|e| WebDriverError::new(ErrorStatus::SessionNotCreated,
-                                                               e.description().to_owned())));
-
-        // double-dashed flags are not accepted on Windows systems
-        runner.args().push("-marionette".to_owned());
-
-        // https://developer.mozilla.org/docs/Environment_variables_affecting_crash_reporting
-        runner.envs().insert("MOZ_CRASHREPORTER".to_string(), "1".to_string());
-        runner.envs().insert("MOZ_CRASHREPORTER_NO_REPORT".to_string(), "1".to_string());
-        runner.envs().insert("MOZ_CRASHREPORTER_SHUTDOWN".to_string(), "1".to_string());
-
-        if let Some(args) = options.args.take() {
-            runner.args().extend(args);
+        let mut profile = match options.profile {
+            Some(x) => x,
+            None => Profile::new(None)?
         };
 
-        try!(self.set_prefs(port, &mut runner.profile, custom_profile, options.prefs)
+        self.set_prefs(port, &mut profile, is_custom_profile, options.prefs)
             .map_err(|e| {
                 WebDriverError::new(ErrorStatus::SessionNotCreated,
                                     format!("Failed to set preferences: {}", e))
-            }));
+            })?;
 
-        try!(runner.start()
+        let mut runner = FirefoxRunner::new(&binary, profile);
+
+        // https://developer.mozilla.org/docs/Environment_variables_affecting_crash_reporting
+        runner
+            .env("MOZ_CRASHREPORTER", "1")
+            .env("MOZ_CRASHREPORTER_NO_REPORT", "1")
+            .env("MOZ_CRASHREPORTER_SHUTDOWN", "1");
+
+        // double-dashed flags are not accepted on Windows systems
+        runner.arg("-marionette");
+        if self.settings.jsdebugger {
+            runner.arg("-jsdebugger");
+        }
+        if let Some(args) = options.args.as_ref() {
+            runner.args(args);
+        }
+
+        let browser_proc = runner.start()
             .map_err(|e| {
                 WebDriverError::new(ErrorStatus::SessionNotCreated,
                                     format!("Failed to start browser {}: {}",
                                             binary.display(), e))
-            }));
-        self.browser = Some(runner);
+            })?;
+        self.browser = Some(browser_proc);
 
         Ok(())
     }
@@ -492,9 +495,15 @@ impl MarionetteHandler {
 
         prefs.insert_slice(&extra_prefs[..]);
 
-        if let Some(ref level) = self.current_log_level {
-            prefs.insert("marionette.log.level", Pref::new(level.to_string()));
-        };
+        if self.settings.jsdebugger {
+            prefs.insert("devtools.browsertoolbox.panel", Pref::new("jsdebugger".to_owned()));
+            prefs.insert("devtools.debugger.remote-enabled", Pref::new(true));
+            prefs.insert("devtools.chrome.enabled", Pref::new(true));
+            prefs.insert("devtools.debugger.prompt-connection", Pref::new(false));
+            prefs.insert("marionette.debugging.clicktostart", Pref::new(true));
+        }
+
+        prefs.insert("marionette.log.level", Pref::new(logging::max_level().to_string()));
         prefs.insert("marionette.port", Pref::new(port as i64));
 
         prefs.write().map_err(|_| WebDriverError::new(ErrorStatus::UnknownError,
@@ -558,7 +567,7 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
                                 // Shutdown the browser if no session can
                                 // be established due to errors.
                                 if let NewSession(_) = msg.command {
-                                    err.delete_session=true;
+                                    err.delete_session = true;
                                 }
                                 err})
                     },
@@ -573,18 +582,29 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
         }
     }
 
-    fn delete_session(&mut self, _: &Option<Session>) {
-        if let Ok(connection) = self.connection.lock() {
-            if let Some(ref conn) = *connection {
+    fn delete_session(&mut self, session: &Option<Session>) {
+        if let Some(ref s) = *session {
+            let delete_session = WebDriverMessage {
+                session_id: Some(s.id.clone()),
+                command: WebDriverCommand::DeleteSession,
+            };
+            let _ = self.handle_command(session, delete_session);
+        }
+
+        if let Ok(ref mut connection) = self.connection.lock() {
+            if let Some(conn) = connection.as_mut() {
                 conn.close();
             }
         }
+
         if let Some(ref mut runner) = self.browser {
-            debug!("Stopping browser process");
-            if runner.stop().is_err() {
-                error!("Failed to kill browser process");
-            };
+            // TODO(https://bugzil.la/1443922):
+            // Use toolkit.asyncshutdown.crash_timout pref
+            if runner.wait(time::Duration::from_secs(70)).is_err() {
+                error!("Failed to stop browser process");
+            }
         }
+
         self.connection = Mutex::new(None);
         self.browser = None;
     }
@@ -939,10 +959,10 @@ impl MarionetteSession {
             let expiry = try!(
                 Nullable::from_json(x.find("expiry").unwrap_or(&Json::Null),
                                     |x| {
-                                        Ok(Date::new((try_opt!(
+                                        Ok(Date::new(try_opt!(
                                             x.as_u64(),
                                             ErrorStatus::UnknownError,
-                                            "Cookie expiry must be a positive integer"))))
+                                            "Cookie expiry must be a positive integer")))
                                     }));
             let secure = try_opt!(
                 x.find("secure").map_or(Some(false), |x| x.as_boolean()),
@@ -1295,54 +1315,59 @@ impl MarionetteConnection {
         MarionetteConnection {
             port: port,
             stream: None,
-            session: MarionetteSession::new(session_id)
+            session: MarionetteSession::new(session_id),
         }
     }
 
-    pub fn connect(&mut self, browser: &mut Option<FirefoxRunner>) -> WebDriverResult<()> {
-        let timeout = 60 * 1000;  // ms
-        let poll_interval = 100;  // ms
+    pub fn connect(&mut self, browser: &mut Option<FirefoxProcess>) -> WebDriverResult<()> {
+        let timeout = 60 * 1000; // ms
+        let poll_interval = 100; // ms
         let poll_attempts = timeout / poll_interval;
         let mut poll_attempt = 0;
 
         loop {
-            // If the process is gone, immediately abort the connection attempts
+            // immediately abort connection attempts if process disappears
             if let &mut Some(ref mut runner) = browser {
-                let status = runner.status();
-                if status.is_err() || status.as_ref().map(|x| *x).unwrap_or(None) != None {
+                let exit_status = match runner.try_wait() {
+                    Ok(Some(status)) => Some(
+                        status
+                            .code()
+                            .map(|c| c.to_string())
+                            .unwrap_or("signal".into()),
+                    ),
+                    Ok(None) => None,
+                    Err(_) => Some("{unknown}".into()),
+                };
+                if let Some(s) = exit_status {
                     return Err(WebDriverError::new(
                         ErrorStatus::UnknownError,
-                        format!("Process unexpectedly closed with status: {}", status
-                            .ok()
-                            .and_then(|x| x)
-                            .and_then(|x| x.code())
-                            .map(|x| x.to_string())
-                            .unwrap_or("{unknown}".into()))));
+                        format!("Process unexpectedly closed with status {}", s),
+                    ));
                 }
             }
 
             match TcpStream::connect(&(DEFAULT_HOST, self.port)) {
                 Ok(stream) => {
                     self.stream = Some(stream);
-                    break
-                },
+                    break;
+                }
                 Err(e) => {
                     trace!("  connection attempt {}/{}", poll_attempt, poll_attempts);
                     if poll_attempt <= poll_attempts {
                         poll_attempt += 1;
-                        sleep(Duration::from_millis(poll_interval));
+                        thread::sleep(time::Duration::from_millis(poll_interval));
                     } else {
                         return Err(WebDriverError::new(
-                            ErrorStatus::UnknownError, e.description().to_owned()));
+                            ErrorStatus::UnknownError,
+                            e.description().to_owned(),
+                        ));
                     }
                 }
             }
-        };
+        }
 
         debug!("Connected to Marionette on {}:{}", DEFAULT_HOST, self.port);
-
-        try!(self.handshake());
-        Ok(())
+        self.handshake()
     }
 
     fn handshake(&mut self) -> WebDriverResult<()> {
