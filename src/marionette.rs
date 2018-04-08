@@ -600,8 +600,9 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
         if let Some(ref mut runner) = self.browser {
             // TODO(https://bugzil.la/1443922):
             // Use toolkit.asyncshutdown.crash_timout pref
-            if runner.wait(time::Duration::from_secs(70)).is_err() {
-                error!("Failed to stop browser process");
+            match runner.wait(time::Duration::from_secs(70)) {
+                Ok(x) => debug!("Browser process stopped with exit status {}", x),
+                Err(e) => error!("Failed to stop browser process: {}", e),
             }
         }
 
@@ -1320,11 +1321,11 @@ impl MarionetteConnection {
     }
 
     pub fn connect(&mut self, browser: &mut Option<FirefoxProcess>) -> WebDriverResult<()> {
-        let timeout = 60 * 1000; // ms
-        let poll_interval = 100; // ms
-        let poll_attempts = timeout / poll_interval;
-        let mut poll_attempt = 0;
+        let timeout = time::Duration::from_secs(60);
+        let poll_interval = time::Duration::from_millis(100);
+        let now = time::Instant::now();
 
+        debug!("Waiting {}s to connect to browser", timeout.as_secs());
         loop {
             // immediately abort connection attempts if process disappears
             if let &mut Some(ref mut runner) = browser {
@@ -1352,10 +1353,8 @@ impl MarionetteConnection {
                     break;
                 }
                 Err(e) => {
-                    trace!("  connection attempt {}/{}", poll_attempt, poll_attempts);
-                    if poll_attempt <= poll_attempts {
-                        poll_attempt += 1;
-                        thread::sleep(time::Duration::from_millis(poll_interval));
+                    if now.elapsed() < timeout {
+                        thread::sleep(poll_interval);
                     } else {
                         return Err(WebDriverError::new(
                             ErrorStatus::UnknownError,
