@@ -637,7 +637,7 @@ the built executable with `./mach geckodriver -- --other --flags`.
 [Marionette protocol]: https://firefox-source-docs.mozilla.org/testing/marionette/marionette/Protocol.html
 [WebDriver]: https://w3c.github.io/webdriver/webdriver-spec.html
 [FirefoxDriver]: https://github.com/SeleniumHQ/selenium/wiki/FirefoxDriver
-[Marionette]: https://firefox-source-docs.mozilla.org/testing/marionette/marionette/
+[Marionette]: https://firefox-source-docs.mozilla.org/testing/marionette/doc/marionette/index.html
 [Firefox CI]: https://treeherder.mozilla.org/
 [mozconfig]: https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Build_Instructions/Configuring_Build_Options
 
