@@ -72,7 +72,7 @@ geckodriver supports a number of [capabilities]:
 
 [capabilities]: https://w3c.github.io/webdriver/#capabilities
 
-<table>
+<table style="word-wrap: normal">
  <thead>
   <tr>
    <th>Name
