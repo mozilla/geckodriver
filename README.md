@@ -72,7 +72,7 @@ geckodriver supports a number of [capabilities]:
 
 [capabilities]: https://w3c.github.io/webdriver/#capabilities
 
-<table style="word-wrap: normal">
+<table>
  <thead>
   <tr>
    <th>Name
@@ -83,7 +83,7 @@ geckodriver supports a number of [capabilities]:
  </thead>
 
  <tr>
-  <td><code>acceptInsecureCerts</code>
+  <td><nobr><code>acceptInsecureCerts</code></nobr>
   <td>boolean
   <td>false
   <td>Indicates the session will not implicitly trust untrusted
