@@ -8,7 +8,7 @@ use mozprofile::preferences::Pref;
 // a Testing :: Marionette peer before you make any changes to this file.
 
 lazy_static! {
-    pub static ref DEFAULT: [(&'static str, Pref); 53] = [
+    pub static ref DEFAULT: Vec<(&'static str, Pref)> = vec![
         // Make sure Shield doesn't hit the network.
         ("app.normandy.api_url", Pref::new("")),
 
@@ -16,6 +16,9 @@ lazy_static! {
         ("app.update.auto", Pref::new(false)),
 
         // Disable automatically upgrading Firefox
+        ("app.update.disabledForTesting", Pref::new(true)),
+        // app.update.enabled is being removed. Once Firefox 62 becomes stable,
+        // the line below can be removed as well.
         ("app.update.enabled", Pref::new(false)),
 
         // Enable the dump function, which sends messages to the system
@@ -34,10 +37,6 @@ lazy_static! {
 
         // Skip check for default browser on startup
         ("browser.shell.checkDefaultBrowser", Pref::new(false)),
-
-        // Do not warn when quitting with multiple tabs
-        // TODO: Remove once minimum supported Firefox release is 61.
-        ("browser.showQuitWarning", Pref::new(false)),
 
         // Disable Android snippets
         ("browser.snippets.enabled", Pref::new(false)),
@@ -120,6 +119,9 @@ lazy_static! {
 
         // Show chrome errors and warnings in the error console
         ("javascript.options.showInConsole", Pref::new(true)),
+
+        // Disable download and usage of OpenH264, and Widevine plugins
+        ("media.gmp-manager.updateEnabled", Pref::new(false)),
 
         // Do not prompt with long usernames or passwords in URLs
         // TODO: Remove once minimum supported Firefox release is 61.
