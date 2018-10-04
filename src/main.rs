@@ -160,7 +160,7 @@ fn run() -> ProgramResult {
         Err(_) => return Err((ExitCode::Usage, "invalid host address".into())),
     };
 
-    let binary = matches.value_of("binary").map(|x| PathBuf::from(x));
+    let binary = matches.value_of("binary").map(PathBuf::from);
 
     let marionette_port = match matches.value_of("marionette_port") {
         Some(x) => match u16::from_str(x) {
@@ -180,7 +180,7 @@ fn run() -> ProgramResult {
         }
     };
     if let Some(ref level) = log_level {
-        logging::init_with_level(level.clone()).unwrap();
+        logging::init_with_level(*level).unwrap();
     } else {
         logging::init().unwrap();
     }
