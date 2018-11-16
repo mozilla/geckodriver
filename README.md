@@ -45,12 +45,24 @@ Documentation
   * [Ruby API](https://seleniumhq.github.io/selenium/docs/api/rb/)
 
 * [geckodriver usage](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/Usage.html)
+  * [Supported platforms](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/Support.html)
   * [Firefox capabilities](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/Capabilities.html)
   * [Capabilities example](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/Capabilities.html#capabilities-example)
   * [Enabling trace logs](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/TraceLogs.html)
   * [Analyzing crash data from Firefox](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/CrashReports.html)
 
-* [Contributing](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/index.html#for-developers)
+* [Contributing](https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/#for-developers)
+
+
+Source code
+-----------
+
+geckodriver’s canonical source code can be found in [mozilla-central].
+We only use this GitHub repository for issue tracking and making releases.
+See our [contribution documentation] for more information.
+
+[mozilla-central]: https://hg.mozilla.org/mozilla-central/file/tip/testing/geckodriver
+[contribution documentation]: https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/#for-developers
 
 
 Contact
