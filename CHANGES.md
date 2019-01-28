@@ -4,6 +4,69 @@ Change log
 All notable changes to this program is documented in this file.
 
 
+0.24.0 [917474f3473e] (2018-01-28)
+------------------------------------
+
+### Added
+
+- Introduces `strictFileInteractability` capability
+
+  The new capabilitiy indicates if strict interactability checks
+  should be applied to `<input type=file>` elements.  As strict
+  interactability checks are off by default, there is a change
+  in behaviour when using [Element Send Keys] with hidden file
+  upload controls.
+
+- Added new endpoint `GET /session/{session id}/moz/screenshot/full`
+  for taking full document screenshots, thanks to Greg Fraley.
+
+- Added new `--marionette-host <HOSTNAME>` flag for binding to a
+  particular interface/IP layer on the system.
+
+- Added new endpoint `POST /session/{session_id}/window/new`
+  for the [New Window] command to create a new top-level browsing
+  context, which can be either a window or a tab.
+
+- When using the preference `devtools.console.stdout.content` set to
+  `true` logging of console API calls like `info()`, `warn()`, and
+  `error()` can be routed to stdout.
+
+- geckodriver now sets the `app.update.disabledForTesting` preference
+  to prevent Firefox >= 65 from automatically updating whilst under
+  automation.
+
+### Removed
+
+- Turned off builds for arm7hf, which will no longer be released but
+  can still be built from the source.
+
+### Changed
+
+- Allow file uploads to hidden `<input type=file>` elements
+
+  Through a series of changes to the WebDriver specification,
+  geckodriver is now aligned with chromedriver’s behaviour that
+  allows interaction with hidden `<input type=file>` elements.
+
+  This allows WebDriver to be used with various popular web
+  frameworks that—through indirection—hides the file upload control
+  and invokes it through other means.
+
+- Allow use of an indefinite script timeout for the [Set Timeouts]
+  command, thanks to reimu.
+
+### Fixed
+
+- Corrected `Content-Type` of response header to `utf-8` to fix
+  an HTTP/1.1 compatibility bug.
+
+- Relaxed the deserialization of timeouts parameters to allow unknown
+  fields for the [Set Timeouts] command.
+
+- Fixed a regression in the [Take Element Screenshot] to not screenshot
+  the viewport, but the requested element.
+
+
 0.23.0 (2018-10-03)
 -------------------
 
@@ -1078,6 +1141,7 @@ and greater.
 [insecure certificate]: https://w3c.github.io/webdriver/webdriver-spec.html#dfn-insecure-certificate
 [Minimize Window]: https://w3c.github.io/webdriver/webdriver-spec.html#minimize-window
 [New Session]: https://w3c.github.io/webdriver/webdriver-spec.html#new-session
+[New Window]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Commands/New_Window
 [Send Alert Text]: https://w3c.github.io/webdriver/webdriver-spec.html#send-alert-text
 [Set Timeouts]: https://w3c.github.io/webdriver/webdriver-spec.html#set-timeouts
 [Set Window Rect]: https://w3c.github.io/webdriver/webdriver-spec.html#set-window-rect

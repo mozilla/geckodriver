@@ -4,6 +4,12 @@ Supported platforms
 The following table shows a mapping between [geckodriver releases],
 supported versions of Firefox, and required Selenium version:
 
+<style type="text/css">
+  table { width: 100%; margin-bottom: 2em; }
+  table, th, td { border: solid gray 1px; }
+  td { padding: 5px 10px; text-align: center; }
+</style>
+
 <table>
  <thead>
   <tr>
@@ -17,6 +23,11 @@ supported versions of Firefox, and required Selenium version:
   </tr>
  </thead>
 
+ <tr>
+  <td>0.23.0
+  <td>≥ 3.11 (3.14 Python)
+  <td>57
+  <td>n/a
  <tr>
   <td>0.22.0
   <td>≥ 3.11 (3.14 Python)
@@ -57,7 +68,7 @@ supported versions of Firefox, and required Selenium version:
   <td>≥ 3.4
   <td>52
   <td>62
-
+</table>
 
 Clients
 -------

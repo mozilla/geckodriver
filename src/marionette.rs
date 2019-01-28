@@ -1,6 +1,8 @@
-use command::{AddonInstallParameters, AddonUninstallParameters, GeckoContextParameters,
-              GeckoExtensionCommand, GeckoExtensionRoute, XblLocatorParameters,
-              CHROME_ELEMENT_KEY, LEGACY_ELEMENT_KEY};
+use crate::command::{
+    AddonInstallParameters, AddonUninstallParameters, GeckoContextParameters,
+    GeckoExtensionCommand, GeckoExtensionRoute, XblLocatorParameters, CHROME_ELEMENT_KEY,
+    LEGACY_ELEMENT_KEY,
+};
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
 use mozrunner::runner::{FirefoxProcess, FirefoxRunner, Runner, RunnerProcess};
@@ -18,10 +20,10 @@ use std::sync::Mutex;
 use std::thread;
 use std::time;
 use webdriver::capabilities::CapabilitiesMatching;
-use webdriver::command::WebDriverCommand::{AcceptAlert, AddCookie, CloseWindow, DeleteCookie,
-                                           DeleteCookies, DeleteSession, DismissAlert,
-                                           ElementClear, ElementClick, ElementSendKeys,
-                                           ExecuteAsyncScript, ExecuteScript,
+use webdriver::command::WebDriverCommand::{AcceptAlert, AddCookie, NewWindow, CloseWindow,
+                                           DeleteCookie, DeleteCookies, DeleteSession,
+                                           DismissAlert, ElementClear, ElementClick,
+                                           ElementSendKeys, ExecuteAsyncScript, ExecuteScript,
                                            Extension, FindElement, FindElementElement,
                                            FindElementElements, FindElements, FullscreenWindow,
                                            Get, GetActiveElement, GetAlertText, GetCSSValue,
@@ -39,23 +41,19 @@ use webdriver::command::WebDriverCommand::{AcceptAlert, AddCookie, CloseWindow, 
 use webdriver::command::{ActionsParameters, AddCookieParameters, GetNamedCookieParameters,
                          GetParameters, JavascriptCommandParameters, LocatorParameters,
                          NewSessionParameters, SwitchToFrameParameters, SwitchToWindowParameters,
-                         TakeScreenshotParameters, TimeoutsParameters, WindowRectParameters};
+                         TimeoutsParameters, WindowRectParameters, NewWindowParameters};
 use webdriver::command::{WebDriverCommand, WebDriverMessage};
 use webdriver::common::{Cookie, FrameId, WebElement, ELEMENT_KEY, FRAME_KEY, WINDOW_KEY};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
-use webdriver::response::{CloseWindowResponse, CookieResponse, CookiesResponse,
+use webdriver::response::{NewWindowResponse, CloseWindowResponse, CookieResponse, CookiesResponse,
                           ElementRectResponse, NewSessionResponse, TimeoutsResponse,
                           ValueResponse, WebDriverResponse, WindowRectResponse};
 use webdriver::server::{Session, WebDriverHandler};
 
-use build::BuildInfo;
-use capabilities::{FirefoxCapabilities, FirefoxOptions};
-use logging;
-use prefs;
-
-// localhost may be routed to the IPv6 stack on certain systems,
-// and nsIServerSocket in Marionette only supports IPv4
-const DEFAULT_HOST: &'static str = "127.0.0.1";
+use crate::build::BuildInfo;
+use crate::capabilities::{FirefoxCapabilities, FirefoxOptions};
+use crate::logging;
+use crate::prefs;
 
 #[derive(Debug, PartialEq, Deserialize)]
 pub struct MarionetteHandshake {
@@ -67,6 +65,7 @@ pub struct MarionetteHandshake {
 
 #[derive(Default)]
 pub struct MarionetteSettings {
+    pub host: String,
     pub port: Option<u16>,
     pub binary: Option<PathBuf>,
     pub connect_existing: bool,
@@ -117,12 +116,13 @@ impl MarionetteHandler {
             logging::set_max_level(l);
         }
 
-        let port = self.settings.port.unwrap_or(get_free_port()?);
+        let host = self.settings.host.to_owned();
+        let port = self.settings.port.unwrap_or(get_free_port(&host)?);
         if !self.settings.connect_existing {
             self.start_browser(port, options)?;
         }
 
-        let mut connection = MarionetteConnection::new(port, session_id.clone());
+        let mut connection = MarionetteConnection::new(host, port, session_id.clone());
         connection.connect(&mut self.browser).or_else(|e| {
             if let Some(ref mut runner) = self.browser {
                 runner.kill()?;
@@ -423,6 +423,8 @@ impl MarionetteSession {
         msg: &WebDriverMessage<GeckoExtensionRoute>,
         resp: MarionetteResponse,
     ) -> WebDriverResult<WebDriverResponse> {
+        use self::GeckoExtensionCommand::*;
+
         if resp.id != self.command_id {
             return Err(WebDriverError::new(
                 ErrorStatus::UnknownError,
@@ -437,7 +439,7 @@ impl MarionetteSession {
             return Err(error.into());
         }
 
-        try!(self.update(msg, &resp));
+        self.update(msg, &resp)?;
 
         Ok(match msg.command {
             // Everything that doesn't have a response value
@@ -479,15 +481,18 @@ impl MarionetteSession {
             | TakeScreenshot
             | TakeElementScreenshot(_) => WebDriverResponse::Generic(resp.to_value_response(true)?),
             GetTimeouts => {
-                let script = try_opt!(
-                    try_opt!(
+                let script = match try_opt!(
                         resp.result.get("script"),
                         ErrorStatus::UnknownError,
                         "Missing field: script"
-                    ).as_u64(),
-                    ErrorStatus::UnknownError,
-                    "Failed to interpret script timeout duration as u64"
-                );
+                    ) {
+                        Value::Null => None,
+                        n => try_opt!(
+                            Some(n.as_u64()),
+                            ErrorStatus::UnknownError,
+                            "Failed to interpret script timeout duration as u64"
+                        ),
+                };
                 // Check for the spec-compliant "pageLoad", but also for "page load",
                 // which was sent by Firefox 52 and earlier.
                 let page_load = try_opt!(
@@ -517,23 +522,43 @@ impl MarionetteSession {
             }
             Status => panic!("Got status command that should already have been handled"),
             GetWindowHandles => WebDriverResponse::Generic(resp.to_value_response(false)?),
+            NewWindow(_) => {
+                let handle: String = try_opt!(
+                    try_opt!(
+                        resp.result.get("handle"),
+                        ErrorStatus::UnknownError,
+                        "Failed to find handle field"
+                    ).as_str(),
+                    ErrorStatus::UnknownError,
+                    "Failed to interpret handle as string"
+                ).into();
+                let typ: String = try_opt!(
+                    try_opt!(
+                        resp.result.get("type"),
+                        ErrorStatus::UnknownError,
+                        "Failed to find type field"
+                    ).as_str(),
+                    ErrorStatus::UnknownError,
+                    "Failed to interpret type as string"
+                ).into();
+
+                WebDriverResponse::NewWindow(NewWindowResponse { handle, typ })
+            }
             CloseWindow => {
                 let data = try_opt!(
                     resp.result.as_array(),
                     ErrorStatus::UnknownError,
                     "Failed to interpret value as array"
                 );
-                let handles = try!(
-                    data.iter()
-                        .map(|x| {
-                            Ok(try_opt!(
-                                x.as_str(),
-                                ErrorStatus::UnknownError,
-                                "Failed to interpret window handle as string"
-                            ).to_owned())
-                        })
-                        .collect()
-                );
+                let handles = data
+                    .iter()
+                    .map(|x| {
+                        Ok(try_opt!(
+                            x.as_str(),
+                            ErrorStatus::UnknownError,
+                            "Failed to interpret window handle as string"
+                        ).to_owned())
+                    }).collect::<Result<Vec<_>, _>>()?;
                 WebDriverResponse::CloseWindow(CloseWindowResponse(handles))
             }
             GetElementRect(_) => {
@@ -650,11 +675,11 @@ impl MarionetteSession {
                 WebDriverResponse::Cookie(CookieResponse(cookie))
             }
             FindElement(_) | FindElementElement(_, _) => {
-                let element = try!(self.to_web_element(try_opt!(
+                let element = self.to_web_element(try_opt!(
                     resp.result.get("value"),
                     ErrorStatus::UnknownError,
                     "Failed to find value field"
-                )));
+                ))?;
                 WebDriverResponse::Generic(ValueResponse(serde_json::to_value(element)?))
             }
             FindElements(_) | FindElementElements(_, _) => {
@@ -663,12 +688,11 @@ impl MarionetteSession {
                     ErrorStatus::UnknownError,
                     "Failed to interpret value as array"
                 );
-                let elements = try!(
-                    element_vec
-                        .iter()
-                        .map(|x| self.to_web_element(x))
-                        .collect::<Result<Vec<_>, _>>()
-                );
+                let elements = element_vec
+                    .iter()
+                    .map(|x| self.to_web_element(x))
+                    .collect::<Result<Vec<_>, _>>()?;
+
                 // TODO(Henrik): How to remove unwrap?
                 WebDriverResponse::Generic(ValueResponse(Value::Array(
                     elements
@@ -678,11 +702,11 @@ impl MarionetteSession {
                 )))
             }
             GetActiveElement => {
-                let element = try!(self.to_web_element(try_opt!(
+                let element = self.to_web_element(try_opt!(
                     resp.result.get("value"),
                     ErrorStatus::UnknownError,
                     "Failed to find value field"
-                )));
+                ))?;
                 WebDriverResponse::Generic(ValueResponse(serde_json::to_value(element)?))
             }
             NewSession(_) => {
@@ -715,36 +739,32 @@ impl MarionetteSession {
             }
             DeleteSession => WebDriverResponse::DeleteSession,
             Extension(ref extension) => match extension {
-                &GeckoExtensionCommand::GetContext => {
-                    WebDriverResponse::Generic(resp.to_value_response(true)?)
-                }
-                &GeckoExtensionCommand::SetContext(_) => WebDriverResponse::Void,
-                &GeckoExtensionCommand::XblAnonymousChildren(_) => {
+                GetContext => WebDriverResponse::Generic(resp.to_value_response(true)?),
+                SetContext(_) => WebDriverResponse::Void,
+                XblAnonymousChildren(_) => {
                     let els_vec = try_opt!(
                         resp.result.as_array(),
                         ErrorStatus::UnknownError,
                         "Failed to interpret body as array"
                     );
-                    let els = try!(
-                        els_vec
-                            .iter()
-                            .map(|x| self.to_web_element(x))
-                            .collect::<Result<Vec<_>, _>>()
-                    );
+                    let els = els_vec
+                        .iter()
+                        .map(|x| self.to_web_element(x))
+                        .collect::<Result<Vec<_>, _>>()?;
+
                     WebDriverResponse::Generic(ValueResponse(serde_json::to_value(els)?))
                 }
-                &GeckoExtensionCommand::XblAnonymousByAttribute(_, _) => {
-                    let el = try!(self.to_web_element(try_opt!(
+                XblAnonymousByAttribute(_, _) => {
+                    let el = self.to_web_element(try_opt!(
                         resp.result.get("value"),
                         ErrorStatus::UnknownError,
                         "Failed to find value field"
-                    )));
+                    ))?;
                     WebDriverResponse::Generic(ValueResponse(serde_json::to_value(el)?))
                 }
-                &GeckoExtensionCommand::InstallAddon(_) => {
-                    WebDriverResponse::Generic(resp.to_value_response(true)?)
-                }
-                &GeckoExtensionCommand::UninstallAddon(_) => WebDriverResponse::Void,
+                InstallAddon(_) => WebDriverResponse::Generic(resp.to_value_response(true)?),
+                UninstallAddon(_) => WebDriverResponse::Void,
+                TakeFullScreenshot => WebDriverResponse::Generic(resp.to_value_response(true)?),
             },
         })
     }
@@ -781,6 +801,8 @@ impl MarionetteCommand {
         capabilities: Option<Map<String, Value>>,
         msg: &WebDriverMessage<GeckoExtensionRoute>,
     ) -> WebDriverResult<MarionetteCommand> {
+        use self::GeckoExtensionCommand::*;
+
         let (opt_name, opt_parameters) = match msg.command {
             Status => panic!("Got status command that should already have been handled"),
             AcceptAlert => {
@@ -788,6 +810,7 @@ impl MarionetteCommand {
                 (Some("WebDriver:AcceptDialog"), None)
             }
             AddCookie(ref x) => (Some("WebDriver:AddCookie"), Some(x.to_marionette())),
+            NewWindow(ref x) => (Some("WebDriver:NewWindow"), Some(x.to_marionette())),
             CloseWindow => (Some("WebDriver:CloseWindow"), None),
             DeleteCookie(ref x) => {
                 let mut data = Map::new();
@@ -828,13 +851,13 @@ impl MarionetteCommand {
             ExecuteScript(ref x) => (Some("WebDriver:ExecuteScript"), Some(x.to_marionette())),
             FindElement(ref x) => (Some("WebDriver:FindElement"), Some(x.to_marionette())),
             FindElementElement(ref e, ref x) => {
-                let mut data = try!(x.to_marionette());
+                let mut data = x.to_marionette()?;
                 data.insert("element".to_string(), Value::String(e.id.clone()));
                 (Some("WebDriver:FindElement"), Some(Ok(data)))
             }
             FindElements(ref x) => (Some("WebDriver:FindElements"), Some(x.to_marionette())),
             FindElementElements(ref e, ref x) => {
-                let mut data = try!(x.to_marionette());
+                let mut data = x.to_marionette()?;
                 data.insert("element".to_string(), Value::String(e.id.clone()));
                 (Some("WebDriver:FindElements"), Some(Ok(data)))
             }
@@ -918,8 +941,7 @@ impl MarionetteCommand {
             SwitchToWindow(ref x) => (Some("WebDriver:SwitchToWindow"), Some(x.to_marionette())),
             TakeElementScreenshot(ref e) => {
                 let mut data = Map::new();
-                data.insert("element".to_string(), serde_json::to_value(e)?);
-                // data.insert("id".to_string(), e.id.to_json());
+                data.insert("id".to_string(), Value::String(e.id.clone()));
                 data.insert("highlights".to_string(), Value::Array(vec![]));
                 data.insert("full".to_string(), Value::Bool(false));
                 (Some("WebDriver:TakeScreenshot"), Some(Ok(data)))
@@ -932,27 +954,34 @@ impl MarionetteCommand {
                 (Some("WebDriver:TakeScreenshot"), Some(Ok(data)))
             }
             Extension(ref extension) => match extension {
-                &GeckoExtensionCommand::GetContext => (Some("Marionette:GetContext"), None),
-                &GeckoExtensionCommand::InstallAddon(ref x) => {
+                GetContext => (Some("Marionette:GetContext"), None),
+                InstallAddon(x) => {
                     (Some("Addon:Install"), Some(x.to_marionette()))
                 }
-                &GeckoExtensionCommand::SetContext(ref x) => {
+                SetContext(x) => {
                     (Some("Marionette:SetContext"), Some(x.to_marionette()))
                 }
-                &GeckoExtensionCommand::UninstallAddon(ref x) => {
+                UninstallAddon(x) => {
                     (Some("Addon:Uninstall"), Some(x.to_marionette()))
                 }
-                &GeckoExtensionCommand::XblAnonymousByAttribute(ref e, ref x) => {
-                    let mut data = try!(x.to_marionette());
+                XblAnonymousByAttribute(e, x) => {
+                    let mut data = x.to_marionette()?;
                     data.insert("element".to_string(), Value::String(e.id.clone()));
                     (Some("WebDriver:FindElement"), Some(Ok(data)))
                 }
-                &GeckoExtensionCommand::XblAnonymousChildren(ref e) => {
+                XblAnonymousChildren(e) => {
                     let mut data = Map::new();
                     data.insert("using".to_owned(), serde_json::to_value("anon")?);
                     data.insert("value".to_owned(), Value::Null);
                     data.insert("element".to_string(), serde_json::to_value(e.id.clone())?);
                     (Some("WebDriver:FindElements"), Some(Ok(data)))
+                }
+                TakeFullScreenshot => {
+                    let mut data = Map::new();
+                    data.insert("id".to_string(), Value::Null);
+                    data.insert("highlights".to_string(), Value::Array(vec![]));
+                    data.insert("full".to_string(), Value::Bool(true));
+                    (Some("WebDriver:TakeScreenshot"), Some(Ok(data)))
                 }
             },
         };
@@ -962,7 +991,7 @@ impl MarionetteCommand {
             ErrorStatus::UnsupportedOperation,
             "Operation not supported"
         );
-        let parameters = try!(opt_parameters.unwrap_or(Ok(Map::new())));
+        let parameters = opt_parameters.unwrap_or(Ok(Map::new()))?;
 
         Ok(MarionetteCommand::new(id, name.into(), parameters))
     }
@@ -1040,24 +1069,27 @@ impl Into<WebDriverError> for MarionetteError {
     }
 }
 
-fn get_free_port() -> IoResult<u16> {
-    TcpListener::bind((DEFAULT_HOST, 0))
+fn get_free_port(host: &str) -> IoResult<u16> {
+    TcpListener::bind((host, 0))
         .and_then(|stream| stream.local_addr())
         .map(|x| x.port())
 }
 
 pub struct MarionetteConnection {
+    host: String,
     port: u16,
     stream: Option<TcpStream>,
     pub session: MarionetteSession,
 }
 
 impl MarionetteConnection {
-    pub fn new(port: u16, session_id: Option<String>) -> MarionetteConnection {
+    pub fn new(host: String, port: u16, session_id: Option<String>) -> MarionetteConnection {
+        let session = MarionetteSession::new(session_id);
         MarionetteConnection {
-            port: port,
+            host,
+            port,
             stream: None,
-            session: MarionetteSession::new(session_id),
+            session,
         }
     }
 
@@ -1069,7 +1101,7 @@ impl MarionetteConnection {
         debug!(
             "Waiting {}s to connect to browser on {}:{}",
             timeout.as_secs(),
-            DEFAULT_HOST,
+            self.host,
             self.port
         );
         loop {
@@ -1093,7 +1125,7 @@ impl MarionetteConnection {
                 }
             }
 
-            match TcpStream::connect(&(DEFAULT_HOST, self.port)) {
+            match TcpStream::connect((&self.host[..], self.port)) {
                 Ok(stream) => {
                     self.stream = Some(stream);
                     break;
@@ -1113,7 +1145,7 @@ impl MarionetteConnection {
 
         debug!(
             "Connection established on {}:{}. Waiting for Marionette handshake",
-            DEFAULT_HOST, self.port,
+            self.host, self.port,
         );
 
         let data = self.handshake()?;
@@ -1237,7 +1269,7 @@ impl MarionetteConnection {
         let stream = self.stream.as_mut().unwrap();
         loop {
             let buf = &mut [0 as u8];
-            let num_read = try!(stream.read(buf));
+            let num_read = stream.read(buf)?;
             let byte = match num_read {
                 0 => {
                     return Err(IoError::new(
@@ -1262,7 +1294,7 @@ impl MarionetteConnection {
         let mut payload = Vec::with_capacity(bytes);
         let mut total_read = 0;
         while total_read < bytes {
-            let num_read = try!(stream.read(buf));
+            let num_read = stream.read(buf)?;
             if num_read == 0 {
                 return Err(IoError::new(
                     ErrorKind::Other,
@@ -1369,7 +1401,7 @@ impl ToMarionette for FrameId {
             FrameId::Short(x) => data.insert("id".to_string(), serde_json::to_value(x)?),
             FrameId::Element(ref x) => data.insert(
                 "element".to_string(),
-                Value::Object(try!(x.to_marionette())),
+                Value::Object(x.to_marionette()?),
             ),
         };
         Ok(data)
@@ -1398,10 +1430,11 @@ impl ToMarionette for GetParameters {
 
 impl ToMarionette for JavascriptCommandParameters {
     fn to_marionette(&self) -> WebDriverResult<Map<String, Value>> {
-        let mut data = serde_json::to_value(self)?.as_object().unwrap().clone();
-        data.insert("newSandbox".to_string(), Value::Bool(false));
-        data.insert("specialPowers".to_string(), Value::Bool(false));
-        Ok(data)
+        Ok(try_opt!(
+            serde_json::to_value(self)?.as_object(),
+            ErrorStatus::UnknownError,
+            "Expected an object"
+        ).clone())
     }
 }
 
@@ -1412,6 +1445,16 @@ impl ToMarionette for LocatorParameters {
             ErrorStatus::UnknownError,
             "Expected an object"
         ).clone())
+    }
+}
+
+impl ToMarionette for NewWindowParameters {
+    fn to_marionette(&self) -> WebDriverResult<Map<String, Value>> {
+        let mut data = Map::new();
+        if let Some(ref x) = self.type_hint {
+            data.insert("type".to_string(), serde_json::to_value(x)?);
+        }
+        Ok(data)
     }
 }
 
@@ -1437,18 +1480,6 @@ impl ToMarionette for SwitchToWindowParameters {
             "name".to_string(),
             serde_json::to_value(self.handle.clone())?,
         );
-        Ok(data)
-    }
-}
-
-impl ToMarionette for TakeScreenshotParameters {
-    fn to_marionette(&self) -> WebDriverResult<Map<String, Value>> {
-        let mut data = Map::new();
-        let element = match self.element {
-            None => Value::Null,
-            Some(ref x) => Value::Object(try!(x.to_marionette())),
-        };
-        data.insert("element".to_string(), element);
         Ok(data)
     }
 }

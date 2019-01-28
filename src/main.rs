@@ -46,9 +46,9 @@ mod prefs;
 #[cfg(test)]
 pub mod test;
 
-use build::BuildInfo;
-use command::extension_routes;
-use marionette::{MarionetteHandler, MarionetteSettings};
+use crate::build::BuildInfo;
+use crate::command::extension_routes;
+use crate::marionette::{MarionetteHandler, MarionetteSettings};
 
 type ProgramResult = std::result::Result<(), (ExitCode, String)>;
 
@@ -96,10 +96,17 @@ fn app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("marionette_host")
+                .long("marionette-host")
+                .value_name("HOST")
+                .help("Host to use to connect to Gecko (default: 127.0.0.1)")
+                .takes_value(true)
+        )
+        .arg(
             Arg::with_name("marionette_port")
                 .long("marionette-port")
                 .value_name("PORT")
-                .help("Port to use to connect to Gecko (default: random free port)")
+                .help("Port to use to connect to Gecko (default: system-allocated port)")
                 .takes_value(true),
         )
         .arg(
@@ -162,6 +169,8 @@ fn run() -> ProgramResult {
 
     let binary = matches.value_of("binary").map(PathBuf::from);
 
+    let marionette_host = matches.value_of("marionette_host")
+        .unwrap_or("127.0.0.1").to_string();
     let marionette_port = match matches.value_of("marionette_port") {
         Some(x) => match u16::from_str(x) {
             Ok(x) => Some(x),
@@ -186,6 +195,7 @@ fn run() -> ProgramResult {
     }
 
     let settings = MarionetteSettings {
+        host: marionette_host,
         port: marionette_port,
         binary,
         connect_existing: matches.is_present("connect_existing"),
