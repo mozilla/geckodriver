@@ -1,0 +1,7 @@
+daysUntilLock: 45
+setLockReason: false
+only: issues
+lockComment: >
+  This issue has been automatically locked since there has not been
+  any recent activity after it was closed.  If you have run into
+  an issue you think is related, please open a new issue.
