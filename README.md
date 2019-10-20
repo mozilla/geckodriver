@@ -1,8 +1,8 @@
 geckodriver
 ===========
 
-Proxy for using W3C [WebDriver] compatible clients to interact with
-Gecko-based browsers.
+Geckodriver binary provides a Proxy for using W3C [WebDriver] compatible 
+clients to interact with Gecko-based browsers(fro example, [Mozilla Firefox]).
 
 This program provides the HTTP API described by the [WebDriver
 protocol] to communicate with Gecko browsers, such as Firefox.  It
@@ -12,6 +12,7 @@ as a proxy between the local- and remote ends.
 [WebDriver protocol]: https://w3c.github.io/webdriver/#protocol
 [Marionette remote protocol]: https://firefox-source-docs.mozilla.org/testing/marionette/
 [WebDriver]: https://developer.mozilla.org/en-US/docs/Web/WebDriver
+[Mozilla Firefox]: https://www.mozilla.org/en-US/firefox/new/
 
 
 Downloads
