@@ -25,9 +25,9 @@ Documentation
 -------------
 
 * [WebDriver] (work in progress)
-  * [Commands](https://developer.mozilla.org/en-US/docs/Web/WebDriver/Commands)
-  * [Errors](https://developer.mozilla.org/en-US/docs/Web/WebDriver/Errors)
-  * [Types](https://developer.mozilla.org/en-US/docs/Web/WebDriver/Types)
+  * [Commands](https://developer.mozilla.org/en-US/docs/Web/WebDriver/Commands).
+  * [Errors](https://developer.mozilla.org/en-US/docs/Web/WebDriver/Errors).
+  * [Types](https://developer.mozilla.org/en-US/docs/Web/WebDriver/Types).
 
 * [Cross browser testing](https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Cross_browser_testing)
 
