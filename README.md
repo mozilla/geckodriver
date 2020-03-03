@@ -72,8 +72,8 @@ Contact
 The mailing list for geckodriver discussion is
 tools-marionette@lists.mozilla.org ([subscribe], [archive]).
 
-There is also an IRC channel to talk about using and developing
-geckodriver in #interop on irc.mozilla.org.
+There is also [Matrix](https://wiki.mozilla.org/Matrix) channel to talk about using and developing
+geckodriver in [interop](https://chat.mozilla.org/#/room/#interop:mozilla.org) on chat.mozilla.org.
 
 [subscribe]: https://lists.mozilla.org/listinfo/tools-marionette
 [archive]: https://lists.mozilla.org/pipermail/tools-marionette/
