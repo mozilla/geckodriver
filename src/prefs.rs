@@ -47,11 +47,6 @@ lazy_static! {
         // Skip check for default browser on startup
         ("browser.shell.checkDefaultBrowser", Pref::new(false)),
 
-        // Disable Android snippets
-        ("browser.snippets.enabled", Pref::new(false)),
-        ("browser.snippets.syncPromo.enabled", Pref::new(false)),
-        ("browser.snippets.firstrunHomepage.enabled", Pref::new(false)),
-
         // Do not redirect user when a milestone upgrade of Firefox
         // is detected
         ("browser.startup.homepage_override.mstone", Pref::new("ignore")),
@@ -96,10 +91,6 @@ lazy_static! {
         // Disable intalling any distribution extensions or add-ons
         ("extensions.installDistroAddons", Pref::new(false)),
 
-        // Make sure Shield doesn't hit the network.
-        // TODO: Remove once minimum supported Firefox release is 60.
-        ("extensions.shield-recipe-client.api_url", Pref::new("")),
-
         // Disable extensions compatibility dialogue.
         // TODO: Remove once minimum supported Firefox release is 61.
         ("extensions.showMismatchUI", Pref::new(false)),
@@ -125,6 +116,10 @@ lazy_static! {
         // No hang monitor
         ("hangmonitor.timeout", Pref::new(0)),
 
+        // Disable idle-daily notifications to avoid expensive operations
+        // that may cause unexpected test timeouts.
+        ("idle.lastDailyNotification", Pref::new(-1)),
+
         // Show chrome errors and warnings in the error console
         ("javascript.options.showInConsole", Pref::new(true)),
 
@@ -145,6 +140,9 @@ lazy_static! {
         // causing problems when quitting Firefox from geckodriver,
         // c.f. https://github.com/mozilla/geckodriver/issues/225.
         ("plugin.state.flash", Pref::new(0)),
+
+        // Don't do network connections for mitm priming
+        ("security.certerrors.mitm.priming.enabled", Pref::new(false)),
 
         // Ensure blocklist updates don't hit the network
         ("services.settings.server", Pref::new("http://%(server)s/dummy/blocklist/")),
