@@ -37,7 +37,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_build_info(dir: &Path) -> Box<BuildInfo> {
+fn get_build_info(dir: &Path) -> Box<dyn BuildInfo> {
     if Path::exists(&dir.join(".hg")) {
         Box::new(Hg {})
     } else if Path::exists(&dir.join(".git")) {
@@ -71,7 +71,7 @@ impl Hg {
             .output()
             .ok()
             .and_then(|r| String::from_utf8(r.stdout).ok())
-            .map(|s| s.trim_right().into())
+            .map(|s| s.trim_end().into())
     }
 }
 
@@ -99,7 +99,7 @@ impl Git {
             .output()
             .ok()
             .and_then(|r| String::from_utf8(r.stdout).ok())
-            .map(|s| s.trim_right().into())
+            .map(|s| s.trim_end().into())
     }
 
     fn to_hg_sha(&self, git_sha: String) -> Option<String> {
@@ -112,8 +112,8 @@ impl BuildInfo for Git {
         self.exec(&["rev-parse", "HEAD"])
             .and_then(|sha| self.to_hg_sha(sha))
             .map(|mut s| {
-              s.truncate(12);
-              s
+                s.truncate(12);
+                s
             })
     }
 

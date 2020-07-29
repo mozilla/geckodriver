@@ -18,7 +18,7 @@ since mach in this case does not have a compile environment:
 	% cd testing/geckodriver
 	% cargo build
 	…
-	   Compiling geckodriver v0.21.0 (file:///home/ato/src/gecko/testing/geckodriver)
+	   Compiling geckodriver v0.21.0 (file:///code/gecko/testing/geckodriver)
 	…
 	    Finished dev [optimized + debuginfo] target(s) in 7.83s
 
@@ -29,7 +29,7 @@ You can run your freshly built geckodriver this way:
 
 	% ./mach geckodriver -- --other --flags
 
-See <Testing.md> for how to run tests.
+See [Testing](Testing.html) for how to run tests.
 
 [Rust]: https://www.rust-lang.org/
 [webdriver crate]: https://crates.io/crates/webdriver

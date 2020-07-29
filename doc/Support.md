@@ -2,12 +2,12 @@ Supported platforms
 ===================
 
 The following table shows a mapping between [geckodriver releases],
-supported versions of Firefox, and required Selenium version:
+and required versions of Selenium and Firefox:
 
 <style type="text/css">
   table { width: 100%; margin-bottom: 2em; }
   table, th, td { border: solid gray 1px; }
-  td { padding: 5px 10px; text-align: center; }
+  td, th { padding: 5px 10px; text-align: center; }
 </style>
 
 <table>
@@ -15,7 +15,7 @@ supported versions of Firefox, and required Selenium version:
   <tr>
     <th rowspan="2">geckodriver
     <th rowspan="2">Selenium
-    <th colspan="2">Supported versions of Firefox
+    <th colspan="2">Firefox
   </tr>
   <tr>
     <th>min
@@ -24,20 +24,35 @@ supported versions of Firefox, and required Selenium version:
  </thead>
 
  <tr>
-  <td>0.23.0
+  <td>0.26.0
+  <td>≥ 3.11 (3.14 Python)
+  <td>60
+  <td>n/a
+ <tr>
+  <td>0.25.0
   <td>≥ 3.11 (3.14 Python)
   <td>57
   <td>n/a
+ <tr>
+  <td>0.24.0
+  <td>≥ 3.11 (3.14 Python)
+  <td>57
+  <td>79
+ <tr>
+  <td>0.23.0
+  <td>≥ 3.11 (3.14 Python)
+  <td>57
+  <td>79
  <tr>
   <td>0.22.0
   <td>≥ 3.11 (3.14 Python)
   <td>57
-  <td>n/a
+  <td>79
  <tr>
   <td>0.21.0
   <td>≥ 3.11 (3.14 Python)
   <td>57
-  <td>n/a
+  <td>79
  <tr>
   <td>0.20.1
   <td>≥ 3.5
@@ -77,7 +92,6 @@ Clients
 Other clients that follow the [W3C WebDriver specification][WebDriver]
 are also supported.
 
-
 Firefoxen
 ---------
 
@@ -95,6 +109,18 @@ in the most recent Firefox versions, and we strongly advise using the
 latest [Firefox Nightly] with geckodriver.  Since Windows XP support
 in Firefox was dropped with Firefox 53, we do not support this platform.
 
+Android
+-------
+
+Starting with the 0.26.0 release geckodriver is able to connect
+to Android devices, and to control packages which are based on [GeckoView]
+(eg. [Firefox Preview] aka Fenix, or [Firefox Reality]). But it also still
+supports versions of Fennec up to 68 ESR, which is the last officially
+supported release from Mozilla.
+
+To run tests on Android specific capabilities under `moz:firefoxOptions`
+have to be set when requesting a new session. See the Android section under
+[Firefox Capabilities](Capabilities.html#android) for more details.
 
 [geckodriver releases]: https://github.com/mozilla/geckodriver/releases
 [Selenium]: https://github.com/seleniumhq/selenium
@@ -105,3 +131,6 @@ in Firefox was dropped with Firefox 53, we do not support this platform.
 [specification]: https://github.com/mozilla/geckodriver/issues?q=is%3Aissue+is%3Aopen+label%3Aspec
 [issue tracker]: https://github.com/mozilla/geckodriver/issues
 [Firefox Nightly]: https://nightly.mozilla.org/
+[GeckoView]: https://wiki.mozilla.org/Mobile/GeckoView
+[Firefox Preview]: https://play.google.com/store/apps/details?id=org.mozilla.fenix
+[Firefox Reality]: https://play.google.com/store/apps/details?id=org.mozilla.vrbrowser

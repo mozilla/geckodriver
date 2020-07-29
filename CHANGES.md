@@ -4,14 +4,231 @@ Change log
 All notable changes to this program is documented in this file.
 
 
-0.24.0 [917474f3473e] (2018-01-28)
+0.27.0  (2020-07-27, `90ec81285ff6`)
+--------------------
+
+### Known problems
+
+- _macOS 10.15 (Catalina):_
+
+  Due to the requirement from Apple that all programs must be
+  notarized, geckodriver will not work on Catalina if you manually
+  download it through another notarized program, such as Firefox.
+
+  Whilst we are working on a repackaging fix for this problem, you
+  can find more details on how to work around this issue in the
+  [macOS notarization] section of the documentation.
+
+### Added
+
+- To set environment variables for the launched Firefox for Android,
+  it is now possible to add an `env` object on `moz:firefoxOptions`
+  (note: this is not supported for Firefox Desktop)
+
+- Support for print-to-PDF
+
+  The newly standardised WebDriver [Print] endpoint provides a way to
+  render pages to a paginated PDF representation. This endpoint is
+  supported by geckodriver when using Firefox version ≥78.
+
+- Support for same-site cookies
+
+  Cookies can now be set with a `same-site` parameter, and the value
+  of that parameter will be returned when cookies are
+  retrieved. Requires Firefox version ≥79. Thanks to [Peter Major] for
+  the patch.
+
+### Fixed
+
+- _Android:_
+
+  * Firefox running on Android devices can now be controlled from a
+    Windows host.
+
+  * Setups with multiple connected Android devices are now supported.
+
+  * Improved cleanup of configuration files. This prevents crashes if
+    the application is started manually after launching it through
+    geckodriver.
+
+- Windows and Linux binaries are again statically linked.
+
+0.26.0  (2019-10-12, `e9783a644016'`)
 ------------------------------------
+
+Note that with this release the minimum recommended Firefox version
+has changed to Firefox ≥60.
+
+### Known problems
+
+- _macOS 10.15 (Catalina):_
+
+  Due to the recent requirement from Apple that all programs must
+  be notarized, geckodriver will not work on Catalina if you manually
+  download it through another notarized program, such as Firefox.
+
+  Whilst we are working on a repackaging fix for this problem, you
+  can find more details on how to work around this issue in the
+  [macOS notarization] section of the documentation.
+
+- _Windows:_
+
+  You must still have the [Microsoft Visual Studio redistributable
+  runtime] installed on your system for the binary to run.  This
+  is a known bug which we weren't able fix for this release.
+
+### Added
+
+- Support for Firefox on Android
+
+  Starting with this release geckodriver is able to connect to
+  Firefox on Android systems, and to control packages based on
+  [GeckoView].
+
+  Support for Android works by the geckodriver process running on
+  a host system and Firefox running within either an emulator or
+  on a physical device connected to the host system.  This requires
+  you to first [enable remote debugging on the Android device].
+
+  The WebDriver client must set the [`platformName` capability] to
+  "`android`" and the `androidPackage` capability within
+  [`moz:firefoxOptions`] to the Android package name of the Firefox
+  application.
+
+  The full list of new capabilities specific to Android, instructions
+  how to use them, and examples can be found in the [`moz:firefoxOptions`]
+  documentation on MDN.
+
+  When the session is created, the `platformName` capability will
+  return "`android`" instead of reporting the platform of the host
+  system.
+
+### Changed
+
+- Continued Marionette refactoring changes
+
+  0.25.0 came with a series of internal changes for how geckodriver
+  communicates with Firefox over the Marionette protocol.  This
+  release contains the second half of the refactoring work.
+
+### Fixed
+
+- Connection attempts to Firefox made more reliable
+
+  geckodriver now waits for the Marionette handshake before assuming
+  the session has been established.  This should improve reliability
+  in creating new WebDriver sessions.
+
+- Corrected error codes used during session creation
+
+  When a new session was being configured with invalid input data,
+  the error codes returned was not always consistent.  Attempting
+  to start a session with a malformed capabilities configuration
+  will now return the [`invalid argument`] error consistently.
+
+
+0.25.0 (2019-09-09, `bdb64cf16b68`)
+-----------------------------------
+
+__Note to Windows users!__
+With this release you must have the [Microsoft Visual Studio redistributable runtime]
+installed on your system for the binary to run.
+This is a [known bug](https://github.com/mozilla/geckodriver/issues/1617)
+with this particular release that we intend to release a fix for soon.
+
+### Added
+
+- Added support for HTTP `HEAD` requests to the HTTPD
+
+  geckodriver now responds correctly to HTTP `HEAD` requests,
+  which can be used for probing whether it supports a particular API.
+
+  Thanks to [Bastien Orivel] for this patch.
+
+- Added support for searching for Nightly’s default path on macOS
+
+  If the location of the Firefox binary is not given, geckodriver
+  will from now also look for the location of Firefox Nightly in
+  the default locations.  The ordered list of search paths on macOS
+  is as follows:
+
+    1. `/Applications/Firefox.app/Contents/MacOS/firefox-bin`
+    2. `$HOME/Applications/Firefox.app/Contents/MacOS/firefox-bin`
+    3. `/Applications/Firefox Nightly.app/Contents/MacOS/firefox-bin`
+    4. `$HOME/Applications/Firefox Nightly.app/Contents/MacOS/firefox-bin`
+
+  Thanks to [Kriti Singh] for this patch.
+
+- Support for application bundle paths on macOS
+
+  It is now possible to pass an application bundle path, such as
+  `/Applications/Firefox.app` as argument to the `binary` field in
+  [`moz:firefoxOptions`].  This will be automatically resolved to
+  the absolute path of the binary when Firefox is started.
+
+  Thanks to [Nupur Baghel] for this patch.
+
+- macOS and Windows builds are signed
+
+  With this release of geckodriver, executables for macOS and Windows
+  are signed using the same certificate key as Firefox.  This should
+  help in cases where geckodriver previously got misidentified as
+  a virus by antivirus software.
+
+### Removed
+
+- Dropped support for legacy Selenium web element references
+
+  The legacy way of serialising web elements, using `{"ELEMENT": <UUID>}`,
+  has been removed in this release.  This may break older Selenium
+  clients and clients which are otherwise not compatible with the
+  WebDriver standard.
+
+  Thanks to [Shivam Singhal] for this patch.
+
+- Removed `--webdriver-port` command-line option
+
+  `--webdriver-port <PORT>` was an undocumented alias for `--port`,
+  initially used for backwards compatibility with clients
+  prior to Selenium 3.0.0.
+
+### Changed
+
+- Refactored Marionette serialisation
+
+  Much of geckodriver’s internal plumbing for serialising WebDriver
+  requests to Marionette messages has been refactored to decrease
+  the amount of manual lifting.
+
+  This work should have no visible side-effects for users.
+
+  Thanks to [Nupur Baghel] for working on this throughout her
+  Outreachy internship at Mozilla.
+
+- Improved error messages for incorrect command-line usage
+
+### Fixed
+
+- Errors related to incorrect command-line usage no longer hidden
+
+  By mistake, earlier versions of geckodriver failed to print incorrect
+  flag use.  With this release problems are again written to stderr.
+
+- Search system path for Firefox binary on BSDs
+
+  geckodriver would previously only search the system path for the
+  `firefox` binary on Linux.  Now it supports different BSD flavours
+  as well.
+
+
+0.24.0 (2019-01-28, `917474f3473e`)
+-----------------------------------
 
 ### Added
 
 - Introduces `strictFileInteractability` capability
 
-  The new capabilitiy indicates if strict interactability checks
+  The new capability indicates if strict interactability checks
   should be applied to `<input type=file>` elements.  As strict
   interactability checks are off by default, there is a change
   in behaviour when using [Element Send Keys] with hidden file
@@ -20,12 +237,13 @@ All notable changes to this program is documented in this file.
 - Added new endpoint `GET /session/{session id}/moz/screenshot/full`
   for taking full document screenshots, thanks to Greg Fraley.
 
-- Added new `--marionette-host <HOSTNAME>` flag for binding to a
+- Added new `--marionette-host <hostname>` flag for binding to a
   particular interface/IP layer on the system.
 
 - Added new endpoint `POST /session/{session_id}/window/new`
   for the [New Window] command to create a new top-level browsing
-  context, which can be either a window or a tab.
+  context, which can be either a window or a tab. The first version
+  of Firefox supporting this command is Firefox 66.0.
 
 - When using the preference `devtools.console.stdout.content` set to
   `true` logging of console API calls like `info()`, `warn()`, and
@@ -37,8 +255,15 @@ All notable changes to this program is documented in this file.
 
 ### Removed
 
-- Turned off builds for arm7hf, which will no longer be released but
-  can still be built from the source.
+- ARMv7 HF builds have been discontinued
+
+  We [announced](https://lists.mozilla.org/pipermail/tools-marionette/2018-September/000035.html)
+  back in September 2018 that we would stop building for ARM,
+  but builds can be self-serviced by building from source.
+
+  To cross-compile from another host system, you can use this command:
+
+  	% cargo build --target armv7-unknown-linux-gnueabihf
 
 ### Changed
 
@@ -199,7 +424,7 @@ to the standard.
   [Jeremy Lempereur].
 
 - Many documentation improvements, now published on
-  https://firefox-source-docs.mozilla.org/testing/geckodriver/geckodriver/.
+  https://firefox-source-docs.mozilla.org/testing/geckodriver/.
 
 
 0.21.0 (2018-06-15)
@@ -555,7 +780,7 @@ and greater.
 
 - Disable Flash and the plugin container in Firefox by
   default, which should help mitigate the “Plugin Container
-  for Firefox has stopped wroking” problems [many users were
+  for Firefox has stopped working” problems [many users were
   reporting](https://github.com/mozilla/geckodriver/issues/225) when
   deleting a session
 
@@ -564,7 +789,7 @@ and greater.
   [Marc Fisher](https://github.com/DrMarcII))
   - The exceptions are the `marionette.port` and `marionette.log.level`
     preferences and their fallbacks, which are set unconditionally and
-    cannot be overriden
+    cannot be overridden
 
 - Remove default preference that disables unsafe CPOW checks
 
@@ -573,7 +798,7 @@ and greater.
 ### Fixed
 
 - Fix for the “corrupt deflate stream” exception that
-  sometimes occured when trying to write an empty profile by
+  sometimes occurred when trying to write an empty profile by
   [@kirhgoph](https://github.com/kirhgoph)
 
 - Recognise `sslProxy` and `sslProxyPort` entries in the proxy
@@ -617,7 +842,7 @@ and greater.
 - Now uses about:blank as the new tab document; this was previously
   disabled due to [bug 1333736](https://bugzil.la/1333736) in Marionette
 
-- WebDriver libary updated to 0.23.0
+- WebDriver library updated to 0.23.0
 
 ### Fixed
 
@@ -726,7 +951,7 @@ and greater.
 
 ### Added
 
-- Introduced continous integration builds for Linux- and Windows 32-bit
+- Introduced continuous integration builds for Linux- and Windows 32-bit
   binaries
 
 - Added commands for setting- and getting the window position
@@ -1024,7 +1249,7 @@ and greater.
 - Make failing to communicate with Firefox a fatal error that closes
   the session
 
-- Shut down session only when loosing connection
+- Shut down session only when losing connection
 
 - Better handling of missing command line flags
 
@@ -1096,6 +1321,14 @@ and greater.
 [README]: https://github.com/mozilla/geckodriver/blob/master/README.md
 [Browser Toolbox]: https://developer.mozilla.org/en-US/docs/Tools/Browser_Toolbox
 [WebDriver conformance]: https://wpt.fyi/results/webdriver/tests?label=experimental
+[`moz:firefoxOptions`]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
+[Microsoft Visual Studio redistributable runtime]: https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads
+[GeckoView]: https://wiki.mozilla.org/Mobile/GeckoView
+[Firefox Preview]: https://play.google.com/store/apps/details?id=org.mozilla.fenix
+[Firefox Reality]: https://play.google.com/store/apps/details?id=org.mozilla.vrbrowser
+[Capabilities]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Capabilities.html
+[enable remote debugging on the Android device]: https://developers.google.com/web/tools/chrome-devtools/remote-debugging
+[macOS notarization]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Notarization.html
 
 [`CloseWindowResponse`]: https://docs.rs/webdriver/newest/webdriver/response/struct.CloseWindowResponse.html
 [`CookieResponse`]: https://docs.rs/webdriver/newest/webdriver/response/struct.CookieResponse.html
@@ -1127,6 +1360,7 @@ and greater.
 [script timeout]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Errors/ScriptTimeout
 [timeout]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Errors/Timeout
 [timeout object]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Timeouts
+[`platformName` capability]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities#platformName
 
 [hyper]: https://hyper.rs/
 [mozrunner crate]: https://crates.io/crates/mozrunner
@@ -1142,6 +1376,7 @@ and greater.
 [Minimize Window]: https://w3c.github.io/webdriver/webdriver-spec.html#minimize-window
 [New Session]: https://w3c.github.io/webdriver/webdriver-spec.html#new-session
 [New Window]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Commands/New_Window
+[Print]: https://w3c.github.io/webdriver/webdriver-spec.html#print
 [Send Alert Text]: https://w3c.github.io/webdriver/webdriver-spec.html#send-alert-text
 [Set Timeouts]: https://w3c.github.io/webdriver/webdriver-spec.html#set-timeouts
 [Set Window Rect]: https://w3c.github.io/webdriver/webdriver-spec.html#set-window-rect
@@ -1154,6 +1389,10 @@ and greater.
 [Jeremy Lempereur]: https://github.com/o0Ignition0o
 [Joshua Bruning]: https://github.com/joshbruning
 [Kalpesh Krishna]: https://github.com/martiansideofthemoon
+[Kriti Singh]: https://github.com/kritisingh1
 [Mike Pennisi]: https://github.com/jugglinmike
+[Nupur Baghel]: https://github.com/nupurbaghel
+[Peter Major]: https://github.com/aldaris
+[Shivam Singhal]: https://github.com/championshuttler
 [Sven Jost]: https://github/mythsunwind
 [Vlad Filippov]: https://github.com/vladikoff
