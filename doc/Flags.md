@@ -1,7 +1,45 @@
 Flags
 =====
 
-#### <code>-b <var>BINARY</var></code>/<code>--binary <var>BINARY</var></code>
+#### <code>--android-storage <var>ANDROID_STORAGE</var></code>
+
+Selects the test data location on the Android device, eg. the Firefox profile.
+By default `auto` is used.
+
+<style type="text/css">
+  table { width: 100%; margin-bottom: 2em; }
+  table, th, td { border: solid gray 1px; }
+  td, th { padding: 10px; text-align: left; vertical-align: middle; }
+  td:nth-child(1), th:nth-child(1) { width: 10em; text-align: center; }
+</style>
+
+<table>
+ <thead>
+  <tr>
+    <th>Value
+    <th>Location of the test data
+  </tr>
+ </thead>
+
+ <tr>
+  <td>auto
+  <td>Best suitable location based on whether the device is rooted.<br/>
+    If the device is rooted <code>internal</code> is used, otherwise <code>app</code>.
+ <tr>
+  <td>app
+  <td><p><code>/data/data/%androidPackage%/test_root</code></p>
+    Based on the <code>androidPackage</code> capability that is passed as part of
+    <code>moz:firefoxOptions</code> when creating a new session.
+ <tr>
+  <td>internal
+  <td><code>/data/local/tmp/test_root</code>
+ <tr>
+  <td>sdcard
+  <td><code>/mnt/sdcard/test_root</code>
+</table>
+
+
+#### <code>-b <var>BINARY</var></code> / <code>--binary <var>BINARY</var></code>
 
 Path to the Firefox binary to use.  By default geckodriver tries to
 find and use the system installation of Firefox, but that behaviour
@@ -28,7 +66,7 @@ scanning the Windows registry.
 [whereis(1)]: http://www.manpagez.com/man/1/whereis/
 
 
-#### `--connect-existing`
+#### <code>--connect-existing</code>
 
 Connect geckodriver to an existing Firefox instance.  This means
 geckodriver will abstain from the default of starting a new Firefox
@@ -55,6 +93,12 @@ Set the Gecko and geckodriver log level.  Possible values are `fatal`,
 `error`, `warn`, `info`, `config`, `debug`, and `trace`.
 
 
+#### <code>--marionette-host <var>HOST</var></code>
+
+Selects the host for geckodriver’s connection to the [Marionette]
+remote protocol. Defaults to 127.0.0.1.
+
+
 #### <code>--marionette-port <var>PORT</var></code>
 
 Selects the port for geckodriver’s connection to the [Marionette]
@@ -70,7 +114,7 @@ under geckodriver’s control, it will simply connect to <var>PORT</var>.
 [`--connect-existing`]: #connect-existing
 
 
-#### <code>-p <var>PORT</var></code>/<code>--port <var>PORT</var></code>
+#### <code>-p <var>PORT</var></code> / <code>--port <var>PORT</var></code>
 
 Port to use for the WebDriver server.  Defaults to 4444.
 
