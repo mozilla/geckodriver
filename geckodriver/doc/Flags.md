@@ -17,7 +17,7 @@ By default `auto` is used.
  <thead>
   <tr>
     <th>Value
-    <th>Location of the test data
+    <th>Description
   </tr>
  </thead>
 
@@ -27,15 +27,23 @@ By default `auto` is used.
     If the device is rooted <code>internal</code> is used, otherwise <code>app</code>.
  <tr>
   <td>app
-  <td><p><code>/data/data/%androidPackage%/test_root</code></p>
+  <td><p>Location: <code>/data/data/%androidPackage%/test_root</code></p>
     Based on the <code>androidPackage</code> capability that is passed as part of
-    <code>moz:firefoxOptions</code> when creating a new session.
+    <code>moz:firefoxOptions</code> when creating a new session. Commands that
+    change data in the app's directory are executed using run-as. This requires
+    that the installed app is debuggable.
  <tr>
   <td>internal
-  <td><code>/data/local/tmp/test_root</code>
+  <td><p>Location: <code>/data/local/tmp/test_root</code></p>
+    The device must be rooted since when the app runs, files that are created
+    in the profile, which is owned by the app user, cannot be changed by the
+    shell user. Commands will be executed via <code>su</code>.
  <tr>
   <td>sdcard
-  <td><code>/mnt/sdcard/test_root</code>
+  <td><p>Location: <code>/mnt/sdcard/test_root</code></p>
+    This location is not supported on Android 11+ due to the
+    <a href="https://developer.android.com/about/versions/11/privacy/storage">
+    changes related to scoped storage</a>.
 </table>
 
 
