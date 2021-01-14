@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 // Writes build information to ${OUT_DIR}/build-info.rs which is included in
 // the program during compilation:
 //
@@ -42,13 +46,11 @@ fn get_build_info(dir: &Path) -> Box<dyn BuildInfo> {
         Box::new(Hg {})
     } else if Path::exists(&dir.join(".git")) {
         Box::new(Git {})
+    } else if let Some(parent) = dir.parent() {
+        get_build_info(parent)
     } else {
-        if let Some(parent) = dir.parent() {
-            get_build_info(parent)
-        } else {
-            eprintln!("unable to detect vcs");
-            Box::new(Noop {})
-        }
+        eprintln!("unable to detect vcs");
+        Box::new(Noop {})
     }
 }
 
