@@ -3,6 +3,11 @@ Flags
 
 #### <code>&#x2D;&#x2D;android-storage <var>ANDROID_STORAGE</var></code>
 
+**Deprecation warning**: This argument is deprecated and planned to be removed
+with the 0.31.0 release of geckodriver. As such it shouldn't be used with version
+0.30.0 or later anymore. By default the automatic detection will now use the
+external storage location, which is always readable and writeable.
+
 Selects the test data location on the Android device, eg. the Firefox profile.
 By default `auto` is used.
 
@@ -40,10 +45,9 @@ By default `auto` is used.
     shell user. Commands will be executed via <code>su</code>.
  <tr>
   <td>sdcard
-  <td><p>Location: <code>/mnt/sdcard/test_root</code></p>
-    This location is not supported on Android 11+ due to the
-    <a href="https://developer.android.com/about/versions/11/privacy/storage">
-    changes related to scoped storage</a>.
+  <td><p>Location: <code>$EXTERNAL_STORAGE/Android/data/%androidPackage%/files/test_root</code></p>
+    This location is supported by all versions of Android whether if the device
+    is rooted or not.
 </table>
 
 
@@ -134,6 +138,33 @@ system to atomically assign a free port.
 
 Attach [browser toolbox] debugger when Firefox starts.  This is
 useful for debugging [Marionette] internals.
+
+To be prompted at the start of the test run or between tests,
+you can set the `marionette.debugging.clicktostart` preference to
+`true`.
+
+For reference, below is the list of preferences that enables the
+chrome debugger. These are all set implicitly when the
+argument is passed to geckodriver.
+
+  * `devtools.browsertoolbox.panel` -> `jsdebugger`
+
+    Selects the Debugger panel by default.
+
+  * `devtools.chrome.enabled` → true
+
+    Enables debugging of chrome code.
+
+  * `devtools.debugger.prompt-connection` → false
+
+    Controls the remote connection prompt.  Note that this will
+    automatically expose your Firefox instance to localhost.
+
+  * `devtools.debugger.remote-enabled` → true
+
+    Allows a remote debugger to connect, which is necessary for
+    debugging chrome code.
+
 
 [browser toolbox]: https://developer.mozilla.org/en-US/docs/Tools/Browser_Toolbox
 
