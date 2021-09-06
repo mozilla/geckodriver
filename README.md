@@ -69,11 +69,7 @@ This GitHub repository is only used for issue tracking and making releases.
 Contact
 -------
 
-The mailing list for geckodriver discussion is
-tools-marionette@lists.mozilla.org ([subscribe], [archive]).
+The mailing list for geckodriver discussion is https://groups.google.com/a/mozilla.org/g/dev-webdriver.
 
 There is also [Matrix](https://wiki.mozilla.org/Matrix) channel to talk about using and developing
 geckodriver in [interop](https://chat.mozilla.org/#/room/#interop:mozilla.org) on chat.mozilla.org.
-
-[subscribe]: https://lists.mozilla.org/listinfo/tools-marionette
-[archive]: https://lists.mozilla.org/pipermail/tools-marionette/
