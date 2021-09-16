@@ -44,6 +44,7 @@ macro_rules! try_opt {
 }
 
 mod android;
+mod browser;
 mod build;
 mod capabilities;
 mod command;
@@ -79,10 +80,7 @@ impl FatalError {
     }
 
     fn help_included(&self) -> bool {
-        match *self {
-            FatalError::Parsing(_) => true,
-            _ => false,
-        }
+        matches!(*self, FatalError::Parsing(_))
     }
 }
 
@@ -128,6 +126,7 @@ enum Operation {
     Version,
     Server {
         log_level: Option<Level>,
+        host: String,
         address: SocketAddr,
         settings: MarionetteSettings,
         deprecated_storage_arg: bool,
@@ -159,6 +158,12 @@ fn parse_args(app: &mut App) -> ProgramResult<Operation> {
         Ok(addr) => SocketAddr::new(addr, port),
         Err(e) => usage!("{}: {}:{}", e, host, port),
     };
+    if !address.ip().is_loopback() {
+        usage!(
+            "invalid --host: {}. Must be a local loopback interface",
+            host
+        )
+    }
 
     let android_storage = value_t!(matches, "android_storage", AndroidStorageInput)
         .unwrap_or(AndroidStorageInput::Auto);
@@ -174,21 +179,33 @@ fn parse_args(app: &mut App) -> ProgramResult<Operation> {
         None => None,
     };
 
+    // For Android the port on the device must be the same as the one on the
+    // host. For now default to 9222, which is the default for --remote-debugging-port.
+    let websocket_port = match matches.value_of("websocket_port") {
+        Some(s) => match u16::from_str(s) {
+            Ok(n) => n,
+            Err(e) => usage!("invalid --websocket-port: {}", e),
+        },
+        None => 9222,
+    };
+
     let op = if matches.is_present("help") {
         Operation::Help
     } else if matches.is_present("version") {
         Operation::Version
     } else {
         let settings = MarionetteSettings {
-            host: marionette_host.to_string(),
-            port: marionette_port,
             binary,
             connect_existing: matches.is_present("connect_existing"),
+            host: marionette_host.to_string(),
+            port: marionette_port,
+            websocket_port,
             jsdebugger: matches.is_present("jsdebugger"),
             android_storage,
         };
         Operation::Server {
             log_level,
+            host: host.into(),
             address,
             settings,
             deprecated_storage_arg: matches.is_present("android_storage"),
@@ -205,6 +222,7 @@ fn inner_main(app: &mut App) -> ProgramResult<()> {
 
         Operation::Server {
             log_level,
+            host,
             address,
             settings,
             deprecated_storage_arg,
@@ -220,7 +238,7 @@ fn inner_main(app: &mut App) -> ProgramResult<()> {
             };
 
             let handler = MarionetteHandler::new(settings);
-            let listening = webdriver::server::start(address, handler, extension_routes())?;
+            let listening = webdriver::server::start(host, address, handler, extension_routes())?;
             info!("Listening on {}", listening.socket);
         }
     }
@@ -290,6 +308,14 @@ fn make_app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true)
                 .value_name("PORT")
                 .help("Port to use to connect to Gecko [default: system-allocated port]"),
+        )
+        .arg(
+            Arg::with_name("websocket_port")
+                .long("websocket-port")
+                .takes_value(true)
+                .value_name("PORT")
+                .conflicts_with("connect_existing")
+                .help("Port to use to connect to WebDriver BiDi [default: 9222]"),
         )
         .arg(
             Arg::with_name("connect_existing")

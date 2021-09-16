@@ -26,7 +26,7 @@ pub struct Locator {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Selector {
     #[serde(rename = "css selector")]
-    CSS,
+    Css,
     #[serde(rename = "link text")]
     LinkText,
     #[serde(rename = "partial link text")]
@@ -149,8 +149,7 @@ pub struct Script {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Command {
-    // Needs to be updated to "WebDriver:AcceptAlert" for Firefox 63
-    #[serde(rename = "WebDriver:AcceptDialog")]
+    #[serde(rename = "WebDriver:AcceptAlert")]
     AcceptAlert,
     #[serde(
         rename = "WebDriver:AddCookie",
@@ -168,6 +167,8 @@ pub enum Command {
     DeleteCookie(String),
     #[serde(rename = "WebDriver:DeleteAllCookies")]
     DeleteCookies,
+    #[serde(rename = "WebDriver:DeleteSession")]
+    DeleteSession,
     #[serde(rename = "WebDriver:DismissAlert")]
     DismissAlert,
     #[serde(rename = "WebDriver:ElementClear")]
@@ -302,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_json_selector_css() {
-        assert_ser_de(&Selector::CSS, json!("css selector"));
+        assert_ser_de(&Selector::Css, json!("css selector"));
     }
 
     #[test]
@@ -376,7 +377,7 @@ mod tests {
     #[test]
     fn test_command_with_params() {
         let locator = Locator {
-            using: Selector::CSS,
+            using: Selector::Css,
             value: "value".into(),
         };
         let json = json!({"WebDriver:FindElement": {"using": "css selector", "value": "value"}});
