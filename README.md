@@ -70,10 +70,7 @@ Contact
 -------
 
 The mailing list for geckodriver discussion is
-tools-marionette@lists.mozilla.org ([subscribe], [archive]).
+https://groups.google.com/a/mozilla.org/g/dev-webdriver.
 
-There is also a Matrix channel to talk about using and developing
-geckodriver on `#interop:mozilla.org <https://chat.mozilla.org/#/room/#interop:mozilla.org>`__
-
-[subscribe]: https://lists.mozilla.org/listinfo/tools-marionette
-[archive]: https://lists.mozilla.org/pipermail/tools-marionette/
+There is also an Element channel to talk about using and developing
+geckodriver on `#webdriver:mozilla.org <https://chat.mozilla.org/#/room/#webdriver:mozilla.org>`__

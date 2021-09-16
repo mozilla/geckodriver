@@ -75,7 +75,7 @@ Firefox (1), and a set of recommended preferences set on startup (2).
 These can be perused here:
 
   1. [testing/geckodriver/src/prefs.rs](https://searchfox.org/mozilla-central/source/testing/geckodriver/src/prefs.rs)
-  2. [testing/marionette/components/marionette/marionette.js](https://searchfox.org/mozilla-central/source/testing/marionette/components/marionette.js)
+  2. [remote/components/marionette.js](https://searchfox.org/mozilla-central/source/remote/components/marionette.js)
 
 As mentioned, these are _recommended_ preferences, and any user-defined
 preferences in the [user.js file] or as part of the [`prefs` capability]
@@ -84,7 +84,9 @@ take precedence.  This means for example that the user can tweak
 starting the browser with a blank page.
 
 The recommended preferences set at runtime (see 2 above) may also
-be disabled entirely by setting `marionette.prefs.recommended`.
+be disabled entirely by setting `remote.prefs.recommended` starting with Firefox
+91. For older versions of Firefox, the preference to use was
+`marionette.prefs.recommended`.
 This may however cause geckodriver to not behave correctly according
 to the WebDriver standard, so it should be used with caution.
 
