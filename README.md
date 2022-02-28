@@ -71,5 +71,5 @@ Contact
 
 The mailing list for geckodriver discussion is https://groups.google.com/a/mozilla.org/g/dev-webdriver.
 
-There is also [Matrix](https://wiki.mozilla.org/Matrix) channel to talk about using and developing
-geckodriver in [interop](https://chat.mozilla.org/#/room/#interop:mozilla.org) on chat.mozilla.org.
+There is also a [Matrix](https://wiki.mozilla.org/Matrix) channel to talk about using and developing
+geckodriver in [webdriver](https://chat.mozilla.org/#/room/#webdriver:mozilla.org) on chat.mozilla.org.
