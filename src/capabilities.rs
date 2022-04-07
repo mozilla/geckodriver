@@ -178,10 +178,8 @@ impl<'a> BrowserCapabilities for FirefoxCapabilities<'a> {
         Ok(true)
     }
 
-    fn web_socket_url(&mut self, caps: &Capabilities) -> WebDriverResult<bool> {
-        self.browser_version(caps)?
-            .map(|v| self.compare_browser_version(&v, ">=90"))
-            .unwrap_or(Ok(false))
+    fn web_socket_url(&mut self, _: &Capabilities) -> WebDriverResult<bool> {
+        Ok(true)
     }
 
     fn validate_custom(&mut self, name: &str, value: &Value) -> WebDriverResult<()> {
@@ -369,6 +367,19 @@ impl AndroidOptions {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum ProfileType {
+    Path(Profile),
+    Named,
+    Temporary,
+}
+
+impl Default for ProfileType {
+    fn default() -> Self {
+        ProfileType::Temporary
+    }
+}
+
 /// Rust representation of `moz:firefoxOptions`.
 ///
 /// Calling `FirefoxOptions::from_capabilities(binary, capabilities)` causes
@@ -378,7 +389,7 @@ impl AndroidOptions {
 #[derive(Default, Debug)]
 pub struct FirefoxOptions {
     pub binary: Option<PathBuf>,
-    pub profile: Option<Profile>,
+    pub profile: ProfileType,
     pub args: Option<Vec<String>>,
     pub env: Option<Vec<(String, String)>>,
     pub log: LogOptions,
@@ -409,33 +420,71 @@ impl FirefoxOptions {
                 )
             })?;
 
-            rv.android = FirefoxOptions::load_android(settings.android_storage, &options)?;
-            rv.args = FirefoxOptions::load_args(&options)?;
-            rv.env = FirefoxOptions::load_env(&options)?;
-            rv.log = FirefoxOptions::load_log(&options)?;
-            rv.prefs = FirefoxOptions::load_prefs(&options)?;
-            rv.profile = FirefoxOptions::load_profile(&options)?;
+            if options.get("androidPackage").is_some() && options.get("binary").is_some() {
+                return Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    "androidPackage and binary are mutual exclusive",
+                ));
+            }
+
+            rv.android = FirefoxOptions::load_android(settings.android_storage, options)?;
+            rv.args = FirefoxOptions::load_args(options)?;
+            rv.env = FirefoxOptions::load_env(options)?;
+            rv.log = FirefoxOptions::load_log(options)?;
+            rv.prefs = FirefoxOptions::load_prefs(options)?;
+            if let Some(profile) = FirefoxOptions::load_profile(options)? {
+                rv.profile = ProfileType::Path(profile);
+            }
         }
 
         if let Some(args) = rv.args.as_ref() {
             let os_args = parse_args(args.iter().map(OsString::from).collect::<Vec<_>>().iter());
+
             if let Some(path) = get_arg_value(os_args.iter(), Arg::Profile) {
-                if rv.profile.is_some() {
+                if let ProfileType::Path(_) = rv.profile {
                     return Err(WebDriverError::new(
                         ErrorStatus::InvalidArgument,
                         "Can't provide both a --profile argument and a profile",
                     ));
                 }
                 let path_buf = PathBuf::from(path);
-                rv.profile = Some(Profile::new_from_path(&path_buf)?);
+                rv.profile = ProfileType::Path(Profile::new_from_path(&path_buf)?);
             }
 
-            if get_arg_value(os_args.iter(), Arg::NamedProfile).is_some() && rv.profile.is_some() {
+            if get_arg_value(os_args.iter(), Arg::NamedProfile).is_some() {
+                if let ProfileType::Path(_) = rv.profile {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::InvalidArgument,
+                        "Can't provide both a -P argument and a profile",
+                    ));
+                }
+                // See bug 1757720
+                warn!("Firefox was configured to use a named profile (`-P <name>`). \
+                       Support for named profiles will be removed in a future geckodriver release. \
+                       Please instead use the `--profile <path>` Firefox argument to start with an existing profile");
+                rv.profile = ProfileType::Named;
+            }
+
+            // Block these Firefox command line arguments that should not be settable
+            // via session capabilities.
+            if let Some(arg) = os_args
+                .iter()
+                .filter_map(|(opt_arg, _)| opt_arg.as_ref())
+                .find(|arg| {
+                    matches!(
+                        arg,
+                        Arg::Marionette
+                            | Arg::RemoteAllowHosts
+                            | Arg::RemoteAllowOrigins
+                            | Arg::RemoteDebuggingPort
+                    )
+                })
+            {
                 return Err(WebDriverError::new(
                     ErrorStatus::InvalidArgument,
-                    "Can't provide both a -P argument and a profile",
+                    format!("Argument {} can't be set via capabilities", arg),
                 ));
-            }
+            };
         }
 
         let has_web_socket_url = matched
@@ -458,6 +507,32 @@ impl FirefoxOptions {
             let mut remote_args = Vec::new();
             remote_args.push("--remote-debugging-port".to_owned());
             remote_args.push(settings.websocket_port.to_string());
+
+            // Handle additional hosts for WebDriver BiDi WebSocket connections
+            if !settings.allow_hosts.is_empty() {
+                remote_args.push("--remote-allow-hosts".to_owned());
+                remote_args.push(
+                    settings
+                        .allow_hosts
+                        .iter()
+                        .map(|host| host.to_string())
+                        .collect::<Vec<String>>()
+                        .join(","),
+                );
+            }
+
+            // Handle additional origins for WebDriver BiDi WebSocket connections
+            if !settings.allow_origins.is_empty() {
+                remote_args.push("--remote-allow-origins".to_owned());
+                remote_args.push(
+                    settings
+                        .allow_origins
+                        .iter()
+                        .map(|origin| origin.to_string())
+                        .collect::<Vec<String>>()
+                        .join(","),
+                );
+            }
 
             if let Some(ref mut args) = rv.args {
                 args.append(&mut remote_args);
@@ -506,11 +581,7 @@ impl FirefoxOptions {
     fn load_args(options: &Capabilities) -> WebDriverResult<Option<Vec<String>>> {
         if let Some(args_json) = options.get("args") {
             let args_array = args_json.as_array().ok_or_else(|| {
-                WebDriverError::new(
-                    ErrorStatus::InvalidArgument,
-                    "Arguments were not an \
-                 array",
-                )
+                WebDriverError::new(ErrorStatus::InvalidArgument, "Arguments were not an array")
             })?;
             let args = args_array
                 .iter()
@@ -522,6 +593,7 @@ impl FirefoxOptions {
                         "Arguments entries were not all strings",
                     )
                 })?;
+
             Ok(Some(args))
         } else {
             Ok(None)
@@ -792,7 +864,7 @@ mod tests {
     use serde_json::{json, Map, Value};
     use std::fs::File;
     use std::io::Read;
-
+    use url::{Host, Url};
     use webdriver::capabilities::Capabilities;
 
     fn example_profile() -> Value {
@@ -863,6 +935,23 @@ mod tests {
     }
 
     #[test]
+    fn fx_options_from_capabilities_with_blocked_firefox_arguments() {
+        let blocked_args = vec![
+            "--marionette",
+            "--remote-allow-hosts",
+            "--remote-allow-origins",
+            "--remote-debugging-port",
+        ];
+
+        for arg in blocked_args {
+            let mut firefox_opts = Capabilities::new();
+            firefox_opts.insert("args".into(), json!([arg]));
+
+            make_options(firefox_opts, None).expect_err("invalid firefox options");
+        }
+    }
+
+    #[test]
     fn fx_options_from_capabilities_with_websocket_url_not_set() {
         let mut caps = Capabilities::new();
 
@@ -905,12 +994,56 @@ mod tests {
 
         if let Some(args) = opts.args {
             let mut iter = args.iter();
-            assert!(iter
-                .find(|&arg| arg == &"--remote-debugging-port".to_owned())
-                .is_some());
+            assert!(iter.any(|arg| arg == &"--remote-debugging-port".to_owned()));
             assert_eq!(iter.next(), Some(&"1234".to_owned()));
         } else {
-            assert!(false, "CLI arguments for Firefox not found");
+            panic!("CLI arguments for Firefox not found");
+        }
+    }
+
+    #[test]
+    fn fx_options_from_capabilities_with_websocket_and_allow_hosts() {
+        let mut caps = Capabilities::new();
+        caps.insert("webSocketUrl".into(), json!(true));
+
+        let mut marionette_settings: MarionetteSettings = Default::default();
+        marionette_settings.allow_hosts = vec![
+            Host::parse("foo").expect("host"),
+            Host::parse("bar").expect("host"),
+        ];
+        let opts = FirefoxOptions::from_capabilities(None, &marionette_settings, &mut caps)
+            .expect("Valid Firefox options");
+
+        if let Some(args) = opts.args {
+            let mut iter = args.iter();
+            assert!(iter.any(|arg| arg == &"--remote-allow-hosts".to_owned()));
+            assert_eq!(iter.next(), Some(&"foo,bar".to_owned()));
+            assert!(!iter.any(|arg| arg == &"--remote-allow-origins".to_owned()));
+        } else {
+            panic!("CLI arguments for Firefox not found");
+        }
+    }
+
+    #[test]
+    fn fx_options_from_capabilities_with_websocket_and_allow_origins() {
+        let mut caps = Capabilities::new();
+        caps.insert("webSocketUrl".into(), json!(true));
+
+        let mut marionette_settings: MarionetteSettings = Default::default();
+        marionette_settings.allow_origins = vec![
+            Url::parse("http://foo/").expect("url"),
+            Url::parse("http://bar/").expect("url"),
+        ];
+        let opts = FirefoxOptions::from_capabilities(None, &marionette_settings, &mut caps)
+            .expect("Valid Firefox options");
+
+        if let Some(args) = opts.args {
+            let mut iter = args.iter();
+            assert!(iter.any(|arg| arg == &"--remote-allow-origins".to_owned()));
+            assert_eq!(iter.next(), Some(&"http://foo/,http://bar/".to_owned()));
+            assert!(!iter.any(|arg| arg == &"--remote-allow-hosts".to_owned()));
+        } else {
+            panic!("CLI arguments for Firefox not found");
         }
     }
 
@@ -951,12 +1084,10 @@ mod tests {
 
         if let Some(args) = opts.args {
             let mut iter = args.iter();
-            assert!(iter
-                .find(|&arg| arg == &"--remote-debugging-port".to_owned())
-                .is_some());
+            assert!(iter.any(|arg| arg == &"--remote-debugging-port".to_owned()));
             assert_eq!(iter.next(), Some(&"1234".to_owned()));
         } else {
-            assert!(false, "CLI arguments for Firefox not found");
+            panic!("CLI arguments for Firefox not found");
         }
 
         assert!(opts
@@ -973,6 +1104,16 @@ mod tests {
         let marionette_settings = Default::default();
         FirefoxOptions::from_capabilities(None, &marionette_settings, &mut caps)
             .expect_err("Firefox options need to be of type object");
+    }
+
+    #[test]
+    fn fx_options_android_package_and_binary() {
+        let mut firefox_opts = Capabilities::new();
+        firefox_opts.insert("androidPackage".into(), json!("foo"));
+        firefox_opts.insert("binary".into(), json!("bar"));
+
+        make_options(firefox_opts, None)
+            .expect_err("androidPackage and binary are mutual exclusive");
     }
 
     #[test]
@@ -1199,7 +1340,7 @@ mod tests {
         let env = Value::Number(1.into());
 
         let mut firefox_opts = Capabilities::new();
-        firefox_opts.insert("env".into(), env.into());
+        firefox_opts.insert("env".into(), env);
 
         make_options(firefox_opts, None).expect_err("invalid firefox options");
     }
@@ -1222,7 +1363,10 @@ mod tests {
         firefox_opts.insert("profile".into(), encoded_profile);
 
         let opts = make_options(firefox_opts, None).expect("valid firefox options");
-        let mut profile = opts.profile.expect("valid firefox profile");
+        let mut profile = match opts.profile {
+            ProfileType::Path(profile) => profile,
+            _ => panic!("Expected ProfileType::Path"),
+        };
         let prefs = profile.user_prefs().expect("valid preferences");
 
         println!("{:#?}", prefs.prefs);
@@ -1238,7 +1382,26 @@ mod tests {
         let mut firefox_opts = Capabilities::new();
         firefox_opts.insert("args".into(), json!(["--profile", "foo"]));
 
-        make_options(firefox_opts, None).expect("Valid args");
+        let options = make_options(firefox_opts, None).expect("Valid args");
+        assert!(matches!(options.profile, ProfileType::Path(_)));
+    }
+
+    #[test]
+    fn fx_options_args_named_profile() {
+        let mut firefox_opts = Capabilities::new();
+        firefox_opts.insert("args".into(), json!(["-P", "foo"]));
+
+        let options = make_options(firefox_opts, None).expect("Valid args");
+        assert!(matches!(options.profile, ProfileType::Named));
+    }
+
+    #[test]
+    fn fx_options_args_no_profile() {
+        let mut firefox_opts = Capabilities::new();
+        firefox_opts.insert("args".into(), json!(["--headless"]));
+
+        let options = make_options(firefox_opts, None).expect("Valid args");
+        assert!(matches!(options.profile, ProfileType::Temporary));
     }
 
     #[test]
