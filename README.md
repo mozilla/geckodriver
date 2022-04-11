@@ -20,7 +20,6 @@ Downloads
 * [Releases](https://github.com/mozilla/geckodriver/releases/latest)
 * [Change log](https://searchfox.org/mozilla-central/source/testing/geckodriver/CHANGES.md)
 
-
 Documentation
 -------------
 
@@ -65,6 +64,15 @@ This GitHub repository is only used for issue tracking and making releases.
 [Mozilla Public License]: https://www.mozilla.org/en-US/MPL/2.0/
 [mozilla-central]: https://hg.mozilla.org/mozilla-central/file/tip/testing/geckodriver
 
+Custom release builds
+---------------------
+
+If a binary is not available for your platform, it's possibe to create a custom
+build using the [Rust] toolchain. To do this, checkout the release tag for the
+version of interest and run `cargo build`. Alternatively the latest version may
+be built and installed from `crates.io` using `cargo install geckodriver`.
+
+[Rust]: https://rustup.rs/
 
 Contact
 -------

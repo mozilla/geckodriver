@@ -219,8 +219,6 @@ mod tests {
     use std::str::FromStr;
     use std::sync::Mutex;
 
-    use chrono;
-    use log;
     use mozprofile::preferences::{Pref, PrefValue};
 
     lazy_static! {
@@ -236,17 +234,6 @@ mod tests {
         assert_eq!(Level::Config as usize, 30);
         assert_eq!(Level::Debug as usize, 20);
         assert_eq!(Level::Trace as usize, 10);
-    }
-
-    #[test]
-    fn test_level_eq() {
-        assert_eq!(Level::Fatal, Level::Fatal);
-        assert_eq!(Level::Error, Level::Error);
-        assert_eq!(Level::Warn, Level::Warn);
-        assert_eq!(Level::Info, Level::Info);
-        assert_eq!(Level::Config, Level::Config);
-        assert_eq!(Level::Debug, Level::Debug);
-        assert_eq!(Level::Trace, Level::Trace);
     }
 
     #[test]
