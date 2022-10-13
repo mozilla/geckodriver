@@ -17,6 +17,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate serde_yaml;
+extern crate tempfile;
 extern crate url;
 extern crate uuid;
 extern crate webdriver;
@@ -33,7 +34,7 @@ use std::path::PathBuf;
 use std::result;
 use std::str::FromStr;
 
-use clap::{App, AppSettings, Arg};
+use clap::{AppSettings, Arg, Command};
 
 macro_rules! try_opt {
     ($expr:expr, $err_type:expr, $err_msg:expr) => {{
@@ -233,8 +234,8 @@ fn get_allowed_origins(allow_origins: Option<clap::Values>) -> Result<Vec<Url>, 
         .unwrap_or_else(|| Ok(vec![]))
 }
 
-fn parse_args(app: &mut App) -> ProgramResult<Operation> {
-    let args = app.try_get_matches_from_mut(env::args())?;
+fn parse_args(cmd: &mut Command) -> ProgramResult<Operation> {
+    let args = cmd.try_get_matches_from_mut(env::args())?;
 
     if args.is_present("help") {
         return Ok(Operation::Help);
@@ -266,6 +267,20 @@ fn parse_args(app: &mut App) -> ProgramResult<Operation> {
         .unwrap_or(AndroidStorageInput::Auto);
 
     let binary = args.value_of("binary").map(PathBuf::from);
+
+    let profile_root = args.value_of("profile_root").map(PathBuf::from);
+
+    // Try to create a temporary directory on startup to check that the directory exists and is writable
+    {
+        let tmp_dir = if let Some(ref tmp_root) = profile_root {
+            tempfile::tempdir_in(tmp_root)
+        } else {
+            tempfile::tempdir()
+        };
+        if tmp_dir.is_err() {
+            usage!("Unable to write to temporary directory; consider --profile-root with a writeable directory")
+        }
+    }
 
     let marionette_host = args.value_of("marionette_host").unwrap();
     let marionette_port = match args.value_of("marionette_port") {
@@ -305,6 +320,7 @@ fn parse_args(app: &mut App) -> ProgramResult<Operation> {
 
     let settings = MarionetteSettings {
         binary,
+        profile_root,
         connect_existing: args.is_present("connect_existing"),
         host: marionette_host.into(),
         port: marionette_port,
@@ -324,9 +340,9 @@ fn parse_args(app: &mut App) -> ProgramResult<Operation> {
     })
 }
 
-fn inner_main(app: &mut App) -> ProgramResult<()> {
-    match parse_args(app)? {
-        Operation::Help => print_help(app),
+fn inner_main(cmd: &mut Command) -> ProgramResult<()> {
+    match parse_args(cmd)? {
+        Operation::Help => print_help(cmd),
         Operation::Version => print_version(),
 
         Operation::Server {
@@ -365,16 +381,16 @@ fn inner_main(app: &mut App) -> ProgramResult<()> {
 fn main() {
     use std::process::exit;
 
-    let mut app = make_app();
+    let mut cmd = make_command();
 
     // use std::process:Termination when it graduates
-    exit(match inner_main(&mut app) {
+    exit(match inner_main(&mut cmd) {
         Ok(_) => EXIT_SUCCESS,
 
         Err(e) => {
             eprintln!("{}: {}", get_program_name(), e);
             if !e.help_included() {
-                print_help(&mut app);
+                print_help(&mut cmd);
             }
 
             e.exit_code()
@@ -382,8 +398,8 @@ fn main() {
     });
 }
 
-fn make_app<'a>() -> App<'a> {
-    App::new(format!("geckodriver {}", build::build_info()))
+fn make_command<'a>() -> Command<'a> {
+    Command::new(format!("geckodriver {}", build::build_info()))
         .setting(AppSettings::NoAutoHelp)
         .setting(AppSettings::NoAutoVersion)
         .about("WebDriver implementation for Firefox")
@@ -474,6 +490,13 @@ fn make_app<'a>() -> App<'a> {
                 .help("Prints version and copying information"),
         )
         .arg(
+            Arg::new("profile_root")
+                .long("profile-root")
+                .takes_value(true)
+                .value_name("PROFILE_ROOT")
+                .help("Directory in which to create profiles. Defaults to the system temporary directory."),
+        )
+        .arg(
             Arg::new("android_storage")
                 .long("android-storage")
                 .possible_values(&["auto", "app", "internal", "sdcard"])
@@ -502,8 +525,8 @@ fn get_program_name() -> String {
     env::args().next().unwrap()
 }
 
-fn print_help(app: &mut App) {
-    app.print_help().ok();
+fn print_help(cmd: &mut Command) {
+    cmd.print_help().ok();
     println!();
 }
 

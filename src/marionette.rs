@@ -7,7 +7,7 @@ use crate::build;
 use crate::capabilities::{FirefoxCapabilities, FirefoxOptions, ProfileType};
 use crate::command::{
     AddonInstallParameters, AddonUninstallParameters, GeckoContextParameters,
-    GeckoExtensionCommand, GeckoExtensionRoute, CHROME_ELEMENT_KEY,
+    GeckoExtensionCommand, GeckoExtensionRoute,
 };
 use crate::logging;
 use marionette_rs::common::{
@@ -81,6 +81,7 @@ struct MarionetteHandshake {
 #[derive(Default)]
 pub(crate) struct MarionetteSettings {
     pub(crate) binary: Option<PathBuf>,
+    pub(crate) profile_root: Option<PathBuf>,
     pub(crate) connect_existing: bool,
     pub(crate) host: String,
     pub(crate) port: Option<u16>,
@@ -188,12 +189,14 @@ impl MarionetteHandler {
                 options,
                 marionette_port,
                 websocket_port,
+                self.settings.profile_root.as_ref().map(|x| x.as_path()),
             )?)
         } else if !self.settings.connect_existing {
             Browser::Local(LocalBrowser::new(
                 options,
                 marionette_port,
                 self.settings.jsdebugger,
+                self.settings.profile_root.as_ref().map(|x| x.as_path()),
             )?)
         } else {
             Browser::Existing(marionette_port)
@@ -333,13 +336,12 @@ impl MarionetteSession {
             "Failed to convert data to an object"
         );
 
-        let chrome_element = data.get(CHROME_ELEMENT_KEY);
         let element = data.get(ELEMENT_KEY);
         let frame = data.get(FRAME_KEY);
         let window = data.get(WINDOW_KEY);
 
         let value = try_opt!(
-            element.or(chrome_element).or(frame).or(window),
+            element.or(frame).or(window),
             ErrorStatus::UnknownError,
             "Failed to extract web element from Marionette response"
         );
