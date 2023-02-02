@@ -17,16 +17,18 @@ In any case, the steps to release geckodriver are as follows:
 geckodriver depends on a number of Rust crates that also live in
 central by using relative paths. Here an excerpt from its `Cargo.toml`:
 
-    [dependencies]
-    …
-    marionette = { path = "./marionette" }
-    …
-    mozdevice = { path = "../mozbase/rust/mozdevice" }
-    mozprofile = { path = "../mozbase/rust/mozprofile" }
-    mozrunner = { path = "../mozbase/rust/mozrunner" }
-    mozversion = { path = "../mozbase/rust/mozversion" }
-    …
-    webdriver = { path = "../webdriver" }
+```ini
+[dependencies]
+…
+marionette = { path = "./marionette" }
+…
+mozdevice = { path = "../mozbase/rust/mozdevice" }
+mozprofile = { path = "../mozbase/rust/mozprofile" }
+mozrunner = { path = "../mozbase/rust/mozrunner" }
+mozversion = { path = "../mozbase/rust/mozversion" }
+…
+webdriver = { path = "../webdriver" }
+```
 
 Because we need to export the geckodriver source code to the old
 GitHub repository when we release, we first need to publish these
@@ -48,26 +50,22 @@ For each crate:
    currently modified crate. Note that running `cargo update` (see next step)
    will fail if you missed updating a crate's dependency.
 2. Update the crate: `cargo update -p <crate name>`
-3. Commit the changes for the modified `Cargo.toml`, and `Cargo.lock`
-   (can be found in the repositories root folder). Use a commit message
-   like `Bug XYZ - [rust-<crate name>] Release version <version>.`
+3. We also publish audit information for the crates based on Mozilla's
+   [audit criteria], and that must be updated for each release. To do that run:
+
+    ```shell
+    % ./mach cargo vet certify <name> <version> --force
+    ```
+
+4. Commit the changes for the modified [Cargo.toml] files, [Cargo.lock] and the
+   [supply-chain/] folder, which can be found in the repositories root folder.
+   Use a commit message like `Bug XYZ - [rust-<name>] Release version <version>`.
 
 [semantic versioning rules]: https://semver.org/
-## Update libraries
-
-Make relevant changes to [Cargo.toml] to upgrade dependencies, then run
-
-    % ./mach vendor rust
-    % ./mach build testing/geckodriver
-
-to pull down and vendor the upgraded libraries.
-
-The updates to dependencies should always be made as a separate
-commit to not confuse reviewers, because vendoring involves checking
-in a lot of extra code already reviewed downstream.
-
+[audit criteria]: https://mozilla.github.io/cargo-vet/audit-criteria.html
 [Cargo.toml]: https://searchfox.org/mozilla-central/source/testing/geckodriver/Cargo.toml
 [Cargo.lock]: https://searchfox.org/mozilla-central/source/Cargo.lock
+[supply-chain/]: https://searchfox.org/mozilla-central/source/supply-chain
 
 ## Update the change log
 
@@ -83,6 +81,20 @@ It is good practice to also include relevant information from the
 [webdriver], [marionette], [rust-mozrunner], and [rust-mozdevice] crates,
 since these are the most important dependencies of geckodriver and a lot
 of its functionality is implemented there.
+
+To get a list of all the changes for one of the above crates one of the following
+commands can be used:
+
+```shell
+% hg log -M -r <revision>::central --template "{node|short}\t{desc|firstline}\n" <path>
+% git log --reverse $(git cinnabar hg2git <revision>)..HEAD --pretty="%s" <path>
+```
+
+where `<revision>` is the changeset of the last geckodriver release and `<path>`
+the location of the crate in the repository.
+
+Add the list of changes to the related release bug on Bugzilla, and also check the
+dependency list of the bug for other fixes that are worth mentioning.
 
 We follow the writing style of the existing change log, with
 one section per version (with a release date), with subsections
@@ -106,7 +118,9 @@ familiarise yourself with that before deciding on the version number.
 
 After you’ve changed the version number, run
 
-    % ./mach build testing/geckodriver
+```shell
+% ./mach build testing/geckodriver
+```
 
 again to update [Cargo.lock].
 
@@ -142,30 +156,22 @@ released first.
 Therefore change into each of the directories for crates with an update
 and run the following command to publish the crate:
 
-    % cargo publish
+```shell
+% cargo publish
+```
 
 Note that if a crate has an in-tree dependency make sure to first
 change the dependency information.
 
-We also publish audit information for the crates, and that must be
-updated for each release. To do that run:
+Do not release the geckodriver crate yet!
 
-    % ./mach cargo vet certify <name> <version> --force
-
-where `<name>` is the name of the crate and `<version>` is the version of the
-crate that was published.
-
-Once the above steps are done for all published crates, create a single revision
-for the supply-chain changes.
-
-[audit criteria]: https://mozilla.github.io/cargo-vet/audit-criteria.html
+Once all crates have been published observe the `/target/package/` folder under
+the root of the mozilla-central repository and remove all the folders related
+to the above published packages (it will save ~1GB disk space).
 
 ## Export to GitHub
 
-The canonical GitHub repository is
-
-    https://github.com/mozilla/geckodriver.git
-
+The canonical GitHub repository is <https://github.com/mozilla/geckodriver.git>
 so make sure you have a local clone of that.  It has three branches:
 _master_ which only contains the [README.md]; _old_ which was the
 state of the project when it was exported to mozilla-central; and
@@ -175,26 +181,34 @@ Before we copy the code over to the GitHub repository we need to
 check out the [release commit that bumped the version number](#add-the-changeset-id)
 on mozilla-central:
 
-    % hg update $RELEASE_REVISION
+```shell
+% hg update $RELEASE_REVISION
+```
 
 Or:
 
-    % git checkout $(git cinnabar hg2git $RELEASE_REVISION)
+```shell
+% git checkout $(git cinnabar hg2git $RELEASE_REVISION)
+```
 
 We will now export the contents of [testing/geckodriver] to a new branch that
 is based on the _release_ branch, which will be used to create a pull request:
 
-    % cd $SRC/geckodriver
-    % git checkout release
-    % git pull
-    % git checkout -b do_release_X.Y.Z
-    % git rm -rf .
-    % git clean -fxd
-    % cp -rt $SRC/gecko/testing/geckodriver .
+```shell
+% cd $SRC/geckodriver
+% git checkout release
+% git pull
+% git checkout -b do_release_X.Y.Z
+% git rm -rf .
+% git clean -fxd
+% cp -rt $SRC/gecko/testing/geckodriver .
+```
 
 Now verify that geckodriver builds correctly by running:
 
-    % cargo build
+```shell
+% cargo build
+```
 
 [README.md]: https://searchfox.org/mozilla-central/source/testing/geckodriver/README.md
 [testing/geckodriver]: https://searchfox.org/mozilla-central/source/testing/geckodriver
@@ -205,17 +219,23 @@ Now commit all the changes you have made locally to the _release_ branch.
 It is recommended to setup a [GPG key] for signing the commit, so
 that the release commit is marked as `verified`.
 
-    % git add . -- ':!mach_commands.py :!moz.build :!target/*'
-    % git commit -S -am "Import of vX.Y.Z" (signed)
+```shell
+% git add . -- ':!mach_commands.py :!moz.build :!target/*'
+% git commit -S -am "Import of vX.Y.Z" (signed)
+```
 
 or if you cannot use signing use:
 
-    % git add . -- ':!mach_commands.py :!moz.build :!target/*'
-    % git commit -am "Import of vX.Y.Z" (unsigned)
+```shell
+% git add . -- ':!mach_commands.py :!moz.build :!target/*'
+% git commit -am "Import of vX.Y.Z" (unsigned)
+```
 
 Then push the changes, and create a pull request:
 
-    % git push origin do_release_X.Y.Z
+```shell
+% git push origin do_release_X.Y.Z
+```
 
 As indicated above, the changes you make to this branch will not
 be upstreamed back into mozilla-central.  It is merely used as a
@@ -240,7 +260,7 @@ geckodriver needs to be manually released on github.com. Therefore start to
 4. Find the signed geckodriver archives in the [taskcluster index] by
    replacing %changeset% with the full release changeset id. Rename the
    individual files so the basename looks like 'geckodriver-v%version%-%platform%'.
-   Upload them all, including the checksum files for both the Linux platforms.
+   Upload them all, including the checksum files for the Linux platforms.
 
 5. Before announcing the release on GitHub publish the geckodriver crate as well
    on crates.io by running `cargo publish` from the release branch.
@@ -252,5 +272,3 @@ geckodriver needs to be manually released on github.com. Therefore start to
 [dev-webdriver]: https://groups.google.com/a/mozilla.org/g/dev-webdriver
 
 Congratulations!  You’ve released geckodriver!
-
-[releases page]: https://github.com/mozilla/geckodriver/releases

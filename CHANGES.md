@@ -3,9 +3,21 @@
 
 All notable changes to this program are documented in this file.
 
+## 0.32.1  (2023-02-02, `b7f075124503`)
+
+### Fixed
+
+- When using the boolean capability `moz:debuggerAddress` with a value of `true`
+  the site-isolation feature in Firefox will no longer accidentally be turned off.
+  This behavior affected all users of WebDriver clients especially Selenium, which
+  set this capability by default, and caused Firefox on desktop systems to be
+  launched in an unsupported mode.
+
 ## 0.32.0  (2022-10-13, `4563dd583110`)
 
 ### Added
+
+- Native aarch64 builds of geckodriver for Linux and Windows are now available.
 
 - Support `wheel` input source for [Actions], which is associated with a
   wheel-type input device. This endpoint is supported by geckodriver when
@@ -30,12 +42,16 @@ All notable changes to this program are documented in this file.
   a location that both Firefox and geckodriver have read/write access
   to e.g.:
 
+  ```bash
   % mkdir $HOME/tmp
   % geckodriver --profile-root=~/tmp
+  ```
 
   or
 
+  ```bash
   % TMPDIR=$HOME/tmp geckodriver
+  ```
 
   Alternatively, geckodriver may be used with a Firefox install that
   is not packaged inside a sandbox e.g. from [mozilla.org].
@@ -44,6 +60,13 @@ All notable changes to this program are documented in this file.
   is used from within a Snap confinement.
 
   Implemented by [Olivier Tilloy].
+
+- On MacOS the geckodriver binary is now technically both signed and notarized.
+
+  Note: The actual validation can only be performed if the machine that starts
+  the geckodriver binary for the very first time is online. You can find more
+  details on how to work around this issue in the [macOS notarization] section
+  of the documentation.
 
 - The backup of the original Firefox preferences are now correctly restored
   on Android when the WebDriver session ends.
