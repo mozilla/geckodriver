@@ -17,7 +17,7 @@ use marionette_rs::common::{
 use marionette_rs::marionette::AppStatus;
 use marionette_rs::message::{Command, Message, MessageId, Request};
 use marionette_rs::webdriver::{
-    Command as MarionetteWebDriverCommand, Keys as MarionetteKeys, LegacyWebElement,
+    Command as MarionetteWebDriverCommand, Keys as MarionetteKeys,
     Locator as MarionetteLocator, NewWindow as MarionetteNewWindow,
     PrintMargins as MarionettePrintMargins, PrintOrientation as MarionettePrintOrientation,
     PrintPage as MarionettePrintPage, PrintParameters as MarionettePrintParameters,
@@ -189,14 +189,14 @@ impl MarionetteHandler {
                 options,
                 marionette_port,
                 websocket_port,
-                self.settings.profile_root.as_ref().map(|x| x.as_path()),
+                self.settings.profile_root.as_deref(),
             )?)
         } else if !self.settings.connect_existing {
             Browser::Local(LocalBrowser::new(
                 options,
                 marionette_port,
                 self.settings.jsdebugger,
-                self.settings.profile_root.as_ref().map(|x| x.as_path()),
+                self.settings.profile_root.as_deref(),
             )?)
         } else {
             Browser::Existing(marionette_port)
@@ -296,7 +296,7 @@ struct MarionetteSession {
 
 impl MarionetteSession {
     fn new(session_id: Option<String>, capabilities: Map<String, Value>) -> MarionetteSession {
-        let initital_id = session_id.unwrap_or_else(|| "".to_string());
+        let initital_id = session_id.unwrap_or_default();
         MarionetteSession {
             session_id: initital_id,
             capabilities,
@@ -773,10 +773,14 @@ fn try_convert_to_marionette_message(
         },
         DismissAlert => Some(Command::WebDriver(MarionetteWebDriverCommand::DismissAlert)),
         ElementClear(ref e) => Some(Command::WebDriver(
-            MarionetteWebDriverCommand::ElementClear(e.to_marionette()?),
+            MarionetteWebDriverCommand::ElementClear {
+                id: e.clone().to_string(),
+            }
         )),
         ElementClick(ref e) => Some(Command::WebDriver(
-            MarionetteWebDriverCommand::ElementClick(e.to_marionette()?),
+            MarionetteWebDriverCommand::ElementClick {
+                id: e.clone().to_string(),
+            }
         )),
         ElementSendKeys(ref e, ref x) => {
             let keys = x.to_marionette()?;
@@ -854,14 +858,20 @@ fn try_convert_to_marionette_message(
                 name: x.clone(),
             },
         )),
-        GetElementRect(ref x) => Some(Command::WebDriver(
-            MarionetteWebDriverCommand::GetElementRect(x.to_marionette()?),
+        GetElementRect(ref e) => Some(Command::WebDriver(
+            MarionetteWebDriverCommand::GetElementRect {
+                id: e.clone().to_string(),
+            }
         )),
-        GetElementTagName(ref x) => Some(Command::WebDriver(
-            MarionetteWebDriverCommand::GetElementTagName(x.to_marionette()?),
+        GetElementTagName(ref e) => Some(Command::WebDriver(
+            MarionetteWebDriverCommand::GetElementTagName {
+                id: e.clone().to_string(),
+            }
         )),
-        GetElementText(ref x) => Some(Command::WebDriver(
-            MarionetteWebDriverCommand::GetElementText(x.to_marionette()?),
+        GetElementText(ref e) => Some(Command::WebDriver(
+            MarionetteWebDriverCommand::GetElementText {
+                id: e.clone().to_string(),
+            }
         )),
         GetPageSource => Some(Command::WebDriver(
             MarionetteWebDriverCommand::GetPageSource,
@@ -884,15 +894,21 @@ fn try_convert_to_marionette_message(
         GetTimeouts => Some(Command::WebDriver(MarionetteWebDriverCommand::GetTimeouts)),
         GoBack => Some(Command::WebDriver(MarionetteWebDriverCommand::GoBack)),
         GoForward => Some(Command::WebDriver(MarionetteWebDriverCommand::GoForward)),
-        IsDisplayed(ref x) => Some(Command::WebDriver(MarionetteWebDriverCommand::IsDisplayed(
-            x.to_marionette()?,
-        ))),
-        IsEnabled(ref x) => Some(Command::WebDriver(MarionetteWebDriverCommand::IsEnabled(
-            x.to_marionette()?,
-        ))),
-        IsSelected(ref x) => Some(Command::WebDriver(MarionetteWebDriverCommand::IsSelected(
-            x.to_marionette()?,
-        ))),
+        IsDisplayed(ref e) => Some(Command::WebDriver(
+            MarionetteWebDriverCommand::IsDisplayed {
+                id: e.clone().to_string(),
+            }
+        )),
+        IsEnabled(ref e) => Some(Command::WebDriver(
+            MarionetteWebDriverCommand::IsEnabled {
+                id: e.clone().to_string(),
+            }
+        )),
+        IsSelected(ref e) => Some(Command::WebDriver(
+            MarionetteWebDriverCommand::IsSelected {
+                id: e.clone().to_string(),
+            },
+        )),
         MaximizeWindow => Some(Command::WebDriver(
             MarionetteWebDriverCommand::MaximizeWindow,
         )),
@@ -1273,7 +1289,7 @@ impl MarionetteConnection {
     }
 
     fn send(&mut self, data: String) -> WebDriverResult<String> {
-        if self.stream.write(&*data.as_bytes()).is_err() {
+        if self.stream.write(data.as_bytes()).is_err() {
             let mut err = WebDriverError::new(
                 ErrorStatus::UnknownError,
                 "Failed to write request to stream",
@@ -1354,7 +1370,7 @@ impl ToMarionette<Map<String, Value>> for AddonInstallParameters {
         if self.temporary.is_some() {
             data.insert(
                 "temporary".to_string(),
-                serde_json::to_value(&self.temporary)?,
+                serde_json::to_value(self.temporary)?,
             );
         }
         Ok(data)
@@ -1555,14 +1571,6 @@ impl ToMarionette<MarionetteTimeouts> for TimeoutsParameters {
             implicit: self.implicit,
             page_load: self.page_load,
             script: self.script,
-        })
-    }
-}
-
-impl ToMarionette<LegacyWebElement> for WebElement {
-    fn to_marionette(&self) -> WebDriverResult<LegacyWebElement> {
-        Ok(LegacyWebElement {
-            id: self.to_string(),
         })
     }
 }

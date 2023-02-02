@@ -130,6 +130,7 @@ enum Operation {
     Version,
     Server {
         log_level: Option<Level>,
+        log_truncate: bool,
         address: SocketAddr,
         allow_hosts: Vec<Host>,
         allow_origins: Vec<Url>,
@@ -161,8 +162,8 @@ fn server_address(webdriver_host: &str, webdriver_port: u16) -> ProgramResult<So
     }
     // Prefer ipv4 address
     socket_addrs.sort_by(|a, b| {
-        let a_val = if a.ip().is_ipv4() { 0 } else { 1 };
-        let b_val = if b.ip().is_ipv4() { 0 } else { 1 };
+        let a_val = i32::from(!a.ip().is_ipv4());
+        let b_val = i32::from(!b.ip().is_ipv4());
         a_val.partial_cmp(&b_val).expect("Comparison failed")
     });
     Ok(socket_addrs.remove(0))
@@ -332,6 +333,7 @@ fn parse_args(cmd: &mut Command) -> ProgramResult<Operation> {
     };
     Ok(Operation::Server {
         log_level,
+        log_truncate: !args.is_present("log_no_truncate"),
         allow_hosts,
         allow_origins,
         address,
@@ -347,6 +349,7 @@ fn inner_main(cmd: &mut Command) -> ProgramResult<()> {
 
         Operation::Server {
             log_level,
+            log_truncate,
             address,
             allow_hosts,
             allow_origins,
@@ -354,9 +357,9 @@ fn inner_main(cmd: &mut Command) -> ProgramResult<()> {
             deprecated_storage_arg,
         } => {
             if let Some(ref level) = log_level {
-                logging::init_with_level(*level).unwrap();
+                logging::init_with_level(*level, log_truncate).unwrap();
             } else {
-                logging::init().unwrap();
+                logging::init(log_truncate).unwrap();
             }
 
             if deprecated_storage_arg {
@@ -474,8 +477,13 @@ fn make_command<'a>() -> Command<'a> {
                 .long("log")
                 .takes_value(true)
                 .value_name("LEVEL")
-                .possible_values(&["fatal", "error", "warn", "info", "config", "debug", "trace"])
+                .possible_values(["fatal", "error", "warn", "info", "config", "debug", "trace"])
                 .help("Set Gecko log level"),
+        )
+        .arg(
+            Arg::new("log_no_truncate")
+                .long("log-no-truncate")
+                .help("Disable truncation of long log lines"),
         )
         .arg(
             Arg::new("help")
@@ -499,7 +507,7 @@ fn make_command<'a>() -> Command<'a> {
         .arg(
             Arg::new("android_storage")
                 .long("android-storage")
-                .possible_values(&["auto", "app", "internal", "sdcard"])
+                .possible_values(["auto", "app", "internal", "sdcard"])
                 .value_name("ANDROID_STORAGE")
                 .help("Selects storage location to be used for test data (deprecated)."),
         )
