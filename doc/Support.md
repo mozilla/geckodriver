@@ -22,6 +22,12 @@ and required versions of Selenium and Firefox:
     <th>max
   </tr>
  </thead>
+ </thead>
+ <tr>
+  <td>0.33.0
+  <td>≥ 3.11 (3.14 Python)
+  <td>102 ESR
+  <td>n/a
  <tr>
   <td>0.32.2
   <td>≥ 3.11 (3.14 Python)
@@ -162,7 +168,7 @@ supported release from Mozilla.
 
 To run tests on Android specific capabilities under `moz:firefoxOptions`
 have to be set when requesting a new session. See the Android section under
-[Firefox Capabilities](Capabilities.html#android) for more details.
+[Firefox Capabilities](Capabilities.md#android) for more details.
 
 [geckodriver releases]: https://github.com/mozilla/geckodriver/releases
 [Selenium]: https://github.com/seleniumhq/selenium

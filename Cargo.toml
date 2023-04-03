@@ -1,7 +1,7 @@
 [package]
 edition = "2018"
 name = "geckodriver"
-version = "0.32.2"
+version = "0.33.0"
 authors = ["Mozilla"]
 include = [
     "/.cargo",
@@ -27,7 +27,7 @@ clap = { version = "~3.1", default-features = false, features = ["cargo", "std",
 hyper = "0.14"
 lazy_static = "1.0"
 log = { version = "0.4", features = ["std"] }
-marionette = "0.3.0"
+marionette = "0.4.0"
 mozdevice = "0.5.1"
 mozprofile = "0.9.1"
 mozrunner = "0.15.1"
@@ -41,7 +41,7 @@ tempfile = "3"
 unicode-segmentation = "1.9"
 url = "2.0"
 uuid = { version = "1.0", features = ["v4"] }
-webdriver = "0.47.1"
+webdriver = "0.48.0"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
