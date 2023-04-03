@@ -17,12 +17,11 @@ use marionette_rs::common::{
 use marionette_rs::marionette::AppStatus;
 use marionette_rs::message::{Command, Message, MessageId, Request};
 use marionette_rs::webdriver::{
-    Command as MarionetteWebDriverCommand, Keys as MarionetteKeys,
-    Locator as MarionetteLocator, NewWindow as MarionetteNewWindow,
-    PrintMargins as MarionettePrintMargins, PrintOrientation as MarionettePrintOrientation,
-    PrintPage as MarionettePrintPage, PrintParameters as MarionettePrintParameters,
-    ScreenshotOptions, Script as MarionetteScript, Selector as MarionetteSelector,
-    Url as MarionetteUrl, WindowRect as MarionetteWindowRect,
+    Command as MarionetteWebDriverCommand, Keys as MarionetteKeys, Locator as MarionetteLocator,
+    NewWindow as MarionetteNewWindow, PrintMargins as MarionettePrintMargins,
+    PrintOrientation as MarionettePrintOrientation, PrintPage as MarionettePrintPage,
+    PrintParameters as MarionettePrintParameters, ScreenshotOptions, Script as MarionetteScript,
+    Selector as MarionetteSelector, Url as MarionetteUrl, WindowRect as MarionetteWindowRect,
 };
 use mozdevice::AndroidStorageInput;
 use serde::de::{self, Deserialize, Deserializer};
@@ -42,8 +41,9 @@ use webdriver::capabilities::BrowserCapabilities;
 use webdriver::command::WebDriverCommand::{
     AcceptAlert, AddCookie, CloseWindow, DeleteCookie, DeleteCookies, DeleteSession, DismissAlert,
     ElementClear, ElementClick, ElementSendKeys, ExecuteAsyncScript, ExecuteScript, Extension,
-    FindElement, FindElementElement, FindElementElements, FindElements, FullscreenWindow, Get,
-    GetActiveElement, GetAlertText, GetCSSValue, GetCookies, GetCurrentUrl, GetElementAttribute,
+    FindElement, FindElementElement, FindElementElements, FindElements, FindShadowRootElement,
+    FindShadowRootElements, FullscreenWindow, Get, GetActiveElement, GetAlertText, GetCSSValue,
+    GetComputedLabel, GetComputedRole, GetCookies, GetCurrentUrl, GetElementAttribute,
     GetElementProperty, GetElementRect, GetElementTagName, GetElementText, GetNamedCookie,
     GetPageSource, GetShadowRoot, GetTimeouts, GetTitle, GetWindowHandle, GetWindowHandles,
     GetWindowRect, GoBack, GoForward, IsDisplayed, IsEnabled, IsSelected, MaximizeWindow,
@@ -439,6 +439,8 @@ impl MarionetteSession {
             | GetCSSValue(_, _)
             | GetElementText(_)
             | GetElementTagName(_)
+            | GetComputedLabel(_)
+            | GetComputedRole(_)
             | IsEnabled(_)
             | ExecuteScript(_)
             | ExecuteAsyncScript(_)
@@ -656,7 +658,7 @@ impl MarionetteSession {
                 );
                 WebDriverResponse::Cookie(CookieResponse(cookie))
             }
-            FindElement(_) | FindElementElement(_, _) => {
+            FindElement(_) | FindElementElement(_, _) | FindShadowRootElement(_, _) => {
                 let element = self.to_web_element(try_opt!(
                     resp.result.get("value"),
                     ErrorStatus::UnknownError,
@@ -664,7 +666,7 @@ impl MarionetteSession {
                 ))?;
                 WebDriverResponse::Generic(ValueResponse(serde_json::to_value(element)?))
             }
-            FindElements(_) | FindElementElements(_, _) => {
+            FindElements(_) | FindElementElements(_, _) | FindShadowRootElements(_, _) => {
                 let element_vec = try_opt!(
                     resp.result.as_array(),
                     ErrorStatus::UnknownError,
@@ -775,12 +777,12 @@ fn try_convert_to_marionette_message(
         ElementClear(ref e) => Some(Command::WebDriver(
             MarionetteWebDriverCommand::ElementClear {
                 id: e.clone().to_string(),
-            }
+            },
         )),
         ElementClick(ref e) => Some(Command::WebDriver(
             MarionetteWebDriverCommand::ElementClick {
                 id: e.clone().to_string(),
-            }
+            },
         )),
         ElementSendKeys(ref e, ref x) => {
             let keys = x.to_marionette()?;
@@ -824,6 +826,26 @@ fn try_convert_to_marionette_message(
                 },
             ))
         }
+        FindShadowRootElement(ref s, ref x) => {
+            let locator = x.to_marionette()?;
+            Some(Command::WebDriver(
+                MarionetteWebDriverCommand::FindShadowRootElement {
+                    shadow_root: s.clone().to_string(),
+                    using: locator.using.clone(),
+                    value: locator.value,
+                },
+            ))
+        }
+        FindShadowRootElements(ref s, ref x) => {
+            let locator = x.to_marionette()?;
+            Some(Command::WebDriver(
+                MarionetteWebDriverCommand::FindShadowRootElements {
+                    shadow_root: s.clone().to_string(),
+                    using: locator.using.clone(),
+                    value: locator.value,
+                },
+            ))
+        }
         FullscreenWindow => Some(Command::WebDriver(
             MarionetteWebDriverCommand::FullscreenWindow,
         )),
@@ -834,6 +856,16 @@ fn try_convert_to_marionette_message(
             MarionetteWebDriverCommand::GetActiveElement,
         )),
         GetAlertText => Some(Command::WebDriver(MarionetteWebDriverCommand::GetAlertText)),
+        GetComputedLabel(ref e) => Some(Command::WebDriver(
+            MarionetteWebDriverCommand::GetComputedLabel {
+                id: e.clone().to_string(),
+            },
+        )),
+        GetComputedRole(ref e) => Some(Command::WebDriver(
+            MarionetteWebDriverCommand::GetComputedRole {
+                id: e.clone().to_string(),
+            },
+        )),
         GetCookies | GetNamedCookie(_) => {
             Some(Command::WebDriver(MarionetteWebDriverCommand::GetCookies))
         }
@@ -861,17 +893,17 @@ fn try_convert_to_marionette_message(
         GetElementRect(ref e) => Some(Command::WebDriver(
             MarionetteWebDriverCommand::GetElementRect {
                 id: e.clone().to_string(),
-            }
+            },
         )),
         GetElementTagName(ref e) => Some(Command::WebDriver(
             MarionetteWebDriverCommand::GetElementTagName {
                 id: e.clone().to_string(),
-            }
+            },
         )),
         GetElementText(ref e) => Some(Command::WebDriver(
             MarionetteWebDriverCommand::GetElementText {
                 id: e.clone().to_string(),
-            }
+            },
         )),
         GetPageSource => Some(Command::WebDriver(
             MarionetteWebDriverCommand::GetPageSource,
@@ -897,18 +929,14 @@ fn try_convert_to_marionette_message(
         IsDisplayed(ref e) => Some(Command::WebDriver(
             MarionetteWebDriverCommand::IsDisplayed {
                 id: e.clone().to_string(),
-            }
-        )),
-        IsEnabled(ref e) => Some(Command::WebDriver(
-            MarionetteWebDriverCommand::IsEnabled {
-                id: e.clone().to_string(),
-            }
-        )),
-        IsSelected(ref e) => Some(Command::WebDriver(
-            MarionetteWebDriverCommand::IsSelected {
-                id: e.clone().to_string(),
             },
         )),
+        IsEnabled(ref e) => Some(Command::WebDriver(MarionetteWebDriverCommand::IsEnabled {
+            id: e.clone().to_string(),
+        })),
+        IsSelected(ref e) => Some(Command::WebDriver(MarionetteWebDriverCommand::IsSelected {
+            id: e.clone().to_string(),
+        })),
         MaximizeWindow => Some(Command::WebDriver(
             MarionetteWebDriverCommand::MaximizeWindow,
         )),
