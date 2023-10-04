@@ -68,10 +68,10 @@ This GitHub repository is only used for issue tracking and making releases.
 Custom release builds
 ---------------------
 
-If a binary is not available for your platform, it's possibe to create a custom
+If a binary is not available for your platform, it's possible to create a custom
 build using the [Rust] toolchain. To do this, checkout the release tag for the
-version of interest and run `cargo build`. Alternatively the latest version may
-be built and installed from `crates.io` using `cargo install geckodriver`.
+version of interest and run `cargo build`. Alternatively, the latest version may
+be built and installed from `crates.io` using `cargo install geckodriver .
 
 [Rust]: https://rustup.rs/
 
