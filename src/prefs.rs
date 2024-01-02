@@ -32,13 +32,6 @@ lazy_static! {
         ("browser.dom.window.dump.enabled", Pref::new(true)),
         ("devtools.console.stdout.chrome", Pref::new(true)),
 
-        // Disable safebrowsing components
-        ("browser.safebrowsing.blockedURIs.enabled", Pref::new(false)),
-        ("browser.safebrowsing.downloads.enabled", Pref::new(false)),
-        ("browser.safebrowsing.passwords.enabled", Pref::new(false)),
-        ("browser.safebrowsing.malware.enabled", Pref::new(false)),
-        ("browser.safebrowsing.phishing.enabled", Pref::new(false)),
-
         // Do not restore the last open set of tabs if the browser crashed
         ("browser.sessionstore.resume_from_crash", Pref::new(false)),
 
@@ -118,16 +111,11 @@ lazy_static! {
         // Make sure SNTP requests do not hit the network
         ("network.sntp.pools", Pref::new("%(server)s")),
 
-        // Disable Flash.  The plugin container it is run in is
-        // causing problems when quitting Firefox from geckodriver,
-        // c.f. https://github.com/mozilla/geckodriver/issues/225.
-        ("plugin.state.flash", Pref::new(0)),
-
         // Don't do network connections for mitm priming
         ("security.certerrors.mitm.priming.enabled", Pref::new(false)),
 
-        // Ensure blocklist updates don't hit the network
-        ("services.settings.server", Pref::new("")),
+        // Ensure remote settings do not hit the network
+        ("services.settings.server", Pref::new("data:,#remote-settings-dummy/v1")),
 
         // Disable first run pages
         ("startup.homepage_welcome_url", Pref::new("about:blank")),
@@ -137,12 +125,18 @@ lazy_static! {
         ("browser.newtabpage.activity-stream.asrouter.providers.cfr", Pref::new("null")),
         // TODO: Remove once minimum supported Firefox release is 93.
         ("browser.newtabpage.activity-stream.asrouter.providers.cfr-fxa", Pref::new("null")),
+
+        // TODO: Remove once minimum supported Firefox release is 128.
         ("browser.newtabpage.activity-stream.asrouter.providers.snippets", Pref::new("null")),
+
         ("browser.newtabpage.activity-stream.asrouter.providers.message-groups", Pref::new("null")),
         ("browser.newtabpage.activity-stream.asrouter.providers.whats-new-panel", Pref::new("null")),
         ("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", Pref::new("null")),
         ("browser.newtabpage.activity-stream.feeds.system.topstories", Pref::new(false)),
+
+        // TODO: Remove once minimum supported Firefox release is 128.
         ("browser.newtabpage.activity-stream.feeds.snippets", Pref::new(false)),
+
         ("browser.newtabpage.activity-stream.tippyTop.service.endpoint", Pref::new("")),
         ("browser.newtabpage.activity-stream.discoverystream.config", Pref::new("[]")),
 
