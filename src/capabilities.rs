@@ -5,6 +5,8 @@
 use crate::command::LogOptions;
 use crate::logging::Level;
 use crate::marionette::MarionetteSettings;
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use mozdevice::AndroidStorageInput;
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
@@ -16,35 +18,22 @@ use serde_json::{Map, Value};
 use std::collections::BTreeMap;
 use std::default::Default;
 use std::ffi::OsString;
-use std::fmt::{self, Display};
 use std::fs;
 use std::io;
 use std::io::BufWriter;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::str::{self, FromStr};
+use thiserror::Error;
 use webdriver::capabilities::{BrowserCapabilities, Capabilities};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Error)]
 enum VersionError {
-    VersionError(mozversion::Error),
+    #[error(transparent)]
+    VersionError(#[from] mozversion::Error),
+    #[error("No binary provided")]
     MissingBinary,
-}
-
-impl From<mozversion::Error> for VersionError {
-    fn from(err: mozversion::Error) -> VersionError {
-        VersionError::VersionError(err)
-    }
-}
-
-impl Display for VersionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            VersionError::VersionError(ref x) => x.fmt(f),
-            VersionError::MissingBinary => "No binary provided".fmt(f),
-        }
-    }
 }
 
 impl From<VersionError> for WebDriverError {
@@ -180,6 +169,26 @@ impl<'a> BrowserCapabilities for FirefoxCapabilities<'a> {
 
     fn web_socket_url(&mut self, _: &Capabilities) -> WebDriverResult<bool> {
         Ok(true)
+    }
+
+    fn webauthn_virtual_authenticators(&mut self, _: &Capabilities) -> WebDriverResult<bool> {
+        Ok(true)
+    }
+
+    fn webauthn_extension_uvm(&mut self, _: &Capabilities) -> WebDriverResult<bool> {
+        Ok(false)
+    }
+
+    fn webauthn_extension_prf(&mut self, _: &Capabilities) -> WebDriverResult<bool> {
+        Ok(false)
+    }
+
+    fn webauthn_extension_large_blob(&mut self, _: &Capabilities) -> WebDriverResult<bool> {
+        Ok(false)
+    }
+
+    fn webauthn_extension_cred_blob(&mut self, _: &Capabilities) -> WebDriverResult<bool> {
+        Ok(false)
     }
 
     fn validate_custom(&mut self, name: &str, value: &Value) -> WebDriverResult<()> {
@@ -368,17 +377,12 @@ impl AndroidOptions {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub enum ProfileType {
     Path(Profile),
     Named,
+    #[default]
     Temporary,
-}
-
-impl Default for ProfileType {
-    fn default() -> Self {
-        ProfileType::Temporary
-    }
 }
 
 /// Rust representation of `moz:firefoxOptions`.
@@ -555,7 +559,7 @@ impl FirefoxOptions {
             let profile_base64 = profile_json.as_str().ok_or_else(|| {
                 WebDriverError::new(ErrorStatus::InvalidArgument, "Profile is not a string")
             })?;
-            let profile_zip = &*base64::decode(profile_base64)?;
+            let profile_zip = &*BASE64_STANDARD.decode(profile_base64)?;
 
             // Create an emtpy profile directory
             let profile = Profile::new(profile_root)?;
@@ -681,7 +685,7 @@ impl FirefoxOptions {
 
             // https://developer.android.com/studio/build/application-id
             let package_regexp =
-                Regex::new(r#"^([a-zA-Z][a-zA-Z0-9_]*\.){1,}([a-zA-Z][a-zA-Z0-9_]*)$"#).unwrap();
+                Regex::new(r"^([a-zA-Z][a-zA-Z0-9_]*\.){1,}([a-zA-Z][a-zA-Z0-9_]*)$").unwrap();
             if !package_regexp.is_match(package.as_bytes()) {
                 return Err(WebDriverError::new(
                     ErrorStatus::InvalidArgument,
@@ -867,7 +871,7 @@ mod tests {
         let mut profile_data = Vec::with_capacity(1024);
         let mut profile = File::open("src/tests/profile.zip").unwrap();
         profile.read_to_end(&mut profile_data).unwrap();
-        Value::String(base64::encode(&profile_data))
+        Value::String(BASE64_STANDARD.encode(&profile_data))
     }
 
     fn make_options(

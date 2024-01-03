@@ -1,7 +1,7 @@
 [package]
-edition = "2018"
+edition = "2021"
 name = "geckodriver"
-version = "0.33.0"
+version = "0.34.0"
 authors = ["Mozilla"]
 include = [
     "/.cargo",
@@ -21,27 +21,29 @@ license = "MPL-2.0"
 repository = "https://hg.mozilla.org/mozilla-central/file/tip/testing/geckodriver"
 
 [dependencies]
-base64 = "0.13"
+anyhow = "1"
+base64 = "0.21"
 chrono = "0.4.6"
-clap = { version = "~3.1", default-features = false, features = ["cargo", "std", "suggestions", "wrap_help"] }
+clap = { version = "4", default-features = false, features = ["cargo", "std", "suggestions", "wrap_help", "string"] }
 hyper = "0.14"
 lazy_static = "1.0"
 log = { version = "0.4", features = ["std"] }
-marionette = "0.4.0"
-mozdevice = "0.5.1"
-mozprofile = "0.9.1"
-mozrunner = "0.15.1"
-mozversion = "0.5.1"
+marionette = "0.5.0"
+mozdevice = "0.5.2"
+mozprofile = "0.9.2"
+mozrunner = "0.15.2"
+mozversion = "0.5.2"
 regex = { version="1.0", default-features = false, features = ["perf", "std"] }
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 serde_yaml = "0.8"
 tempfile = "3"
+thiserror = "1"
 unicode-segmentation = "1.9"
-url = "2.0"
+url = "2.4"
 uuid = { version = "1.0", features = ["v4"] }
-webdriver = "0.48.0"
+webdriver = "0.50.0"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]

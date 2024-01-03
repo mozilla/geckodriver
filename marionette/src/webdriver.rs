@@ -57,6 +57,13 @@ pub struct Keys {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PrintPageRange {
+    Integer(u64),
+    Range(String),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct PrintParameters {
     pub orientation: PrintOrientation,
@@ -64,7 +71,7 @@ pub struct PrintParameters {
     pub background: bool,
     pub page: PrintPage,
     pub margin: PrintMargins,
-    pub page_ranges: Vec<String>,
+    pub page_ranges: Vec<PrintPageRange>,
     pub shrink_to_fit: bool,
 }
 
@@ -82,18 +89,15 @@ impl Default for PrintParameters {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PrintOrientation {
     Landscape,
+    #[default]
     Portrait,
 }
 
-impl Default for PrintOrientation {
-    fn default() -> Self {
-        PrintOrientation::Portrait
-    }
-}
+
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PrintPage {
@@ -127,6 +131,52 @@ impl Default for PrintMargins {
             right: 1.0,
         }
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum WebAuthnProtocol {
+    #[serde(rename = "ctap1/u2f")]
+    Ctap1U2f,
+    #[serde(rename = "ctap2")]
+    Ctap2,
+    #[serde(rename = "ctap2_1")]
+    Ctap2_1,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum AuthenticatorTransport {
+    Usb,
+    Nfc,
+    Ble,
+    SmartCard,
+    Hybrid,
+    Internal,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AuthenticatorParameters {
+    pub protocol: WebAuthnProtocol,
+    pub transport: AuthenticatorTransport,
+    pub has_resident_key: bool,
+    pub has_user_verification: bool,
+    pub is_user_consenting: bool,
+    pub is_user_verified: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct CredentialParameters {
+    pub credential_id: String,
+    pub is_resident_credential: bool,
+    pub rp_id: String,
+    pub private_key: String,
+    pub user_handle: String,
+    pub sign_count: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct UserVerificationParameters {
+    pub is_user_verified: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -296,6 +346,20 @@ pub enum Command {
     TakeFullScreenshot(ScreenshotOptions),
     #[serde(rename = "WebDriver:TakeScreenshot")]
     TakeScreenshot(ScreenshotOptions),
+    #[serde(rename = "WebAuthn:AddVirtualAuthenticator")]
+    WebAuthnAddVirtualAuthenticator(AuthenticatorParameters),
+    #[serde(rename = "WebAuthn:RemoveVirtualAuthenticator")]
+    WebAuthnRemoveVirtualAuthenticator,
+    #[serde(rename = "WebAuthn:AddCredential")]
+    WebAuthnAddCredential(CredentialParameters),
+    #[serde(rename = "WebAuthn:GetCredentials")]
+    WebAuthnGetCredentials,
+    #[serde(rename = "WebAuthn:RemoveCredential")]
+    WebAuthnRemoveCredential,
+    #[serde(rename = "WebAuthn:RemoveAllCredentials")]
+    WebAuthnRemoveAllCredentials,
+    #[serde(rename = "WebAuthn:SetUserVerified")]
+    WebAuthnSetUserVerified(UserVerificationParameters),
 }
 
 #[cfg(test)]
