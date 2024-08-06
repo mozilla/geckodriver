@@ -2,53 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::error;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(untagged)]
-pub(crate) enum Error {
-    Marionette(MarionetteError),
-}
-
-impl Error {
-    pub fn kind(&self) -> ErrorKind {
-        match *self {
-            Error::Marionette(ref err) => err.kind,
-        }
-    }
-}
-
-impl fmt::Debug for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::Marionette(ref err) => fmt
-                .debug_struct("Marionette")
-                .field("kind", &err.kind)
-                .field("message", &err.message)
-                .field("stacktrace", &err.stack.clone())
-                .finish(),
-        }
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::Marionette(ref err) => write!(fmt, "{}: {}", err.kind, err.message),
-        }
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match self {
-            Error::Marionette(_) => self.kind().as_str(),
-        }
-    }
-}
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct MarionetteError {
@@ -62,12 +18,6 @@ pub struct MarionetteError {
 
 fn empty_string() -> String {
     "".to_owned()
-}
-
-impl From<MarionetteError> for Error {
-    fn from(error: MarionetteError) -> Error {
-        Error::Marionette(error)
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]

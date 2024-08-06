@@ -1,35 +1,48 @@
 # Analyzing crash data of Firefox
 
-It's not uncommon that under some special platform configurations and while
-running automated tests via Selenium and geckodriver Firefox could crash. In
-those cases it is very helpful to retrieve the generated crash data aka
-minidump files, and report these to us.
+If Firefox crashes whilst under automation, it's helpful to retrieve the
+generated crash data aka minidump files, and report these to us.
 
-## Retrieve the crash information
+## Retrieve the crash data
 
 Because geckodriver creates a temporary user profile for Firefox, it also
 automatically removes all its folders once the tests have been finished. That
-also means that if Firefox or just a tab crashed the created minidump files
-cannot be retrieved. To prevent that the `MINIDUMP_SAVE_PATH` environment
-variable can be used. It needs to be forwarded to geckodriver and has to point
-to an existing folder on the local machine. Then, whenever a crash occurs the
-related crash information will then be written to the `<uuid>.dmp` and
-`<uuid>.extra` files within the given folder.
+also means that if Firefox crashed the created minidump files are lost. To
+prevent that a custom profile has to be used instead. The following code
+shows an example by using the Python Selenium bindings on Mac OS:
 
-```bash
-MINIDUMP_SAVE_PATH="/home/test/crashes" pytest path/to/test.py
+```python
+import tempfile
+
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+
+# Custom profile folder to keep the minidump files
+profile = tempfile.mkdtemp(".selenium")
+print("*** Using profile: {}".format(profile))
+
+# Use the above folder as custom profile
+opts = Options()
+opts.add_argument("-profile")
+opts.add_argument(profile)
+opts.binary = "/Applications/Firefox.app/Contents/MacOS/firefox"
+
+driver = webdriver.Firefox(
+    options=opts,
+    # hard-code the Marionette port so geckodriver can connect
+    service_args=["--marionette-port", "2828"]
+)
+
+# Your test code which crashes Firefox
 ```
 
-By running this command Firefox will now write minidump files to that folder:
+Executing the test with Selenium now, which triggers the crash of Firefox
+will leave all the files from the user profile around in the above path.
 
-```bash
-$ ls /home/test/crashes
-4ad24258-ec0f-87bd-fd78-496d9170bd35.dmp
-4ad24258-ec0f-87bd-fd78-496d9170bd35.extra
-```
-
-Note that both of those files are needed when you want to file an issue for
-geckodriver. If more files are present grab them all.
+To retrieve the minidump files navigate to that folder and look for a sub
+folder with the name `minidumps`. It should contain at least one series of
+files. One file with the `.dmp` extension and another one with `.extra`.
+Both of those files are needed. If more crash files are present grab them all.
 
 Attach the files as best archived as zip file to the created [geckodriver issue]
 on Github.
@@ -50,3 +63,16 @@ crash report to the geckodriver issue.
 
 [crash reporter]: https://support.mozilla.org/kb/mozillacrashreporter#w_viewing-reports-outside-of-firefox
 [view the crash reports]: https://support.mozilla.orgkb/mozillacrashreporter#w_viewing-crash-reports
+
+## Enabling the crash reporter
+
+By default geckodriver disables the crash reporter so it doesn't submit crash
+reports to Mozilla's crash reporting system, and also doesn't interfere with
+testing.
+
+This behaviour can be overridden by using the command line argument
+`--enable-crash-reporter`. You can [view the crash reports] and share it with
+us after submission.
+
+**Important**: Please only enable the crash reporter if the above mentioned
+solution does not work.

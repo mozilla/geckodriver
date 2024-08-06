@@ -12,7 +12,7 @@ use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
 use mozrunner::firefox_args::{get_arg_value, parse_args, Arg};
 use mozrunner::runner::platform::firefox_default_path;
-use mozversion::{self, firefox_binary_version, firefox_version, Version};
+use mozversion::{firefox_binary_version, firefox_version, Version};
 use regex::bytes::Regex;
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
@@ -313,15 +313,6 @@ impl<'a> BrowserCapabilities for FirefoxCapabilities<'a> {
                             ))
                         }
                     }
-                }
-            }
-            "moz:useNonSpecCompliantPointerOrigin" => {
-                warn!("You are using the deprecated vendor specific capability 'moz:useNonSpecCompliantPointerOrigin', which will be removed in Firefox 116.");
-                if !value.is_boolean() {
-                    return Err(WebDriverError::new(
-                        ErrorStatus::InvalidArgument,
-                        "moz:useNonSpecCompliantPointerOrigin is not a boolean",
-                    ));
                 }
             }
             "moz:webdriverClick" => {
