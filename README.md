@@ -35,7 +35,7 @@ For a detailed list of changes included in each release, please refer to the [ch
 
 * [Cross browser testing](https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Cross_browser_testing)
 
-* [Selenium](https://seleniumhq.github.io/docs/) (work in progress)
+* [Selenium](https://www.selenium.dev/documentation/)
   * [C# API](https://seleniumhq.github.io/selenium/docs/api/dotnet/)
   * [JavaScript API](https://seleniumhq.github.io/selenium/docs/api/javascript/)
   * [Java API](https://seleniumhq.github.io/selenium/docs/api/java/)
