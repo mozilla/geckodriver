@@ -1,0 +1,89 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ arm ]
+  pull_request:
+    branches: [ arm ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [armv7l, aarch64]
+    env:
+      GECKODRIVER_VERSION: "0.35.0"
+      ARCH: ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set environment variables
+      run: |
+        if [ "$ARCH" == "armv7l" ]; then
+            echo "PLATFORM=linux/arm/v7" >> $GITHUB_ENV
+            echo "HOST_TRIPLE=armv7-unknown-linux-gnueabihf" >> $GITHUB_ENV
+        elif [ "$ARCH" == "aarch64" ]; then
+            echo "PLATFORM=linux/arm64" >> $GITHUB_ENV
+            echo "HOST_TRIPLE=aarch64-unknown-linux-gnu" >> $GITHUB_ENV
+        fi
+
+    - name: Build the Docker image build environment
+      run: |
+        docker build --build-arg GECKODRIVER_VERSION=$GECKODRIVER_VERSION -t local/geckodriver-cross-builder .
+
+    - name: Build the geckodriver binaries in the artifacts directory
+      run: |
+        docker run --rm -v $PWD/artifacts:/media/host -w /opt/geckodriver local/geckodriver-cross-builder sh -c "sh build-arm.sh release $HOST_TRIPLE"
+      
+    - name: Package up the binaries in a tar.gz and calculate md5 hashes
+      run: |
+        sudo chown -R $USER:$USER artifacts
+        mv artifacts/geckodriver geckodriver
+        tar cvfz geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz geckodriver
+        md5sum geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz > geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz.md5
+
+    - name: Generate release notes
+      run: |
+        echo "NOTE:  This is an unofficial arm64 build and armhf of geckodriver v$GECKODRIVER_VERSION.  These binaries are compiled and built independently and are not provided by Mozilla." > release_notes.md
+        echo "" >> release_notes.md
+        echo "**NOTE: Mozilla has released geckodriver for linux-aarch64. Please use their official release instead of the unofficial one here. In the meantime, I have built linux-aarch64 to help make the transition easier. I will continue to build geckodriver linux-armv7.**" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "For details of what is contained in this release, see the [official geckodriver release notes](https://github.com/mozilla/geckodriver/releases)." >> release_notes.md
+
+    - name: Upload artifact binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: geckodriver-v${{ env.GECKODRIVER_VERSION }}-linux-${{ env.ARCH }}.tar.gz
+        path: geckodriver-v${{ env.GECKODRIVER_VERSION }}-linux-${{ env.ARCH }}.tar.gz
+
+    - name: Upload artifact md5
+      uses: actions/upload-artifact@v3
+      with:
+        name: geckodriver-v${{ env.GECKODRIVER_VERSION }}-linux-${{ env.ARCH }}.tar.gz.md5
+        path: geckodriver-v${{ env.GECKODRIVER_VERSION }}-linux-${{ env.ARCH }}.tar.gz.md5
+
+    - name: Upload artifact release_notes.md
+      uses: actions/upload-artifact@v3
+      with:
+        name: release_notes.md
+        path: release_notes.md
+
+    - name: Publish releases with binaries and md5 hashes
+      if: ${{ github.ref == 'refs/heads/master' && contains(toJson(github.event.commits), '[deploy]') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        export RELEASE_TAG=$GECKODRIVER_VERSION
+        go install github.com/github-release/github-release@v0.10.0
+        VERSION=$(~/go/bin/github-release info -u $GITHUB_REPOSITORY_OWNER -r geckodriver | grep $GECKODRIVER_VERSION | head -n 1 | awk '{print $2}')
+        echo "VERSION set to $VERSION"
+        if [ "$VERSION" != "v$GECKODRIVER_VERSION" ]; then
+            echo "Setting release notes"
+            ~/go/bin/github-release release -u $GITHUB_REPOSITORY_OWNER -r geckodriver --tag v$RELEASE_TAG --name $RELEASE_TAG --description "$(cat release_notes.md)"
+            sleep 4
+        fi
+        echo "Uploading files..."
+        ~/go/bin/github-release upload -u $GITHUB_REPOSITORY_OWNER -r geckodriver --tag v$RELEASE_TAG --name geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz --file geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz
+        ~/go/bin/github-release upload -u $GITHUB_REPOSITORY_OWNER -r geckodriver --tag v$RELEASE_TAG --name geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz.md5 --file geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz.md5
