@@ -1,18 +1,19 @@
+# Base image
 FROM debian:latest
-LABEL authors=Mozilla
 
-#========= tags
-# local/geckodriver
-#=========
+# Labels and Credits
+LABEL \
+  name="geckodriver" \
+  authors="Mozilla" \
+  contribution="latest ARM binaries of linux geckodriver"
+
+# tags local/geckodriver
 
 ARG GECKODRIVER_VERSION
 
 USER root
 
-
-#===========
 # Install dependencies and clone geckodriver source
-#===========
 WORKDIR /opt
 RUN echo "deb http://ftp.hk.debian.org/debian/ sid main" >> /etc/apt/sources.list \
   && apt-get update -qqy \
@@ -36,13 +37,9 @@ RUN apt-get update -qqy \
   && apt-get autoremove -y && apt-get clean -y \
   && rm -rf /var/lib/apt/list/* /var/cache/apt/*
 
-#===========
 # Copy build script to container
-#===========
 COPY build-arm.sh /opt/geckodriver/
 
-#===========
 # Build geckodriver arm binary and copy to $PWD/artifacts
-#===========
 #RUN cd geckodriver && sh build-arm.sh
 CMD sh build-arm.sh
