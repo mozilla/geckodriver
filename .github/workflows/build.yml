@@ -14,6 +14,7 @@ jobs:
         arch: [armv7l, aarch64]
     env:
       GECKODRIVER_VERSION: "0.35.0"
+      GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
       ARCH: ${{ matrix.arch }}
     runs-on: ubuntu-latest
     steps:
