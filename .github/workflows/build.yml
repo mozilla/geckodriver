@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: [armv7l, aarch64]
+        arch: [armv7l, aarch64, ppc64le, i386, s390x]
     env:
       GECKODRIVER_VERSION: "0.35.0"
       ARCH: ${{ matrix.arch }}
@@ -27,12 +27,19 @@ jobs:
         elif [ "$ARCH" == "aarch64" ]; then
             echo "PLATFORM=linux/arm64" >> $GITHUB_ENV
             echo "HOST_TRIPLE=aarch64-unknown-linux-gnu" >> $GITHUB_ENV
+        elif [ "$ARCH" == "ppc64le" ]; then
+            echo "PLATFORM=linux/ppc64le" >> $GITHUB_ENV
+            echo "HOST_TRIPLE=powerpc64le-unknown-linux-gnu" >> $GITHUB_ENV
+        elif [ "$ARCH" == "i386" ]; then
+            echo "PLATFORM=linux/386" >> $GITHUB_ENV
+            echo "HOST_TRIPLE=i686-unknown-linux-gnu" >> $GITHUB_ENV
+        elif [ "$ARCH" == "s390x" ]; then
+            echo "PLATFORM=linux/s390x" >> $GITHUB_ENV
+            echo "HOST_TRIPLE=s390x-unknown-linux-gnu" >> $GITHUB_ENV
         fi
-
     - name: Build the Docker image build environment
       run: |
         docker build --build-arg GECKODRIVER_VERSION=$GECKODRIVER_VERSION -t local/geckodriver-cross-builder .
-
     - name: Build the geckodriver binaries in the artifacts directory
       run: |
         docker run --rm -v $PWD/artifacts:/media/host -w /opt/geckodriver local/geckodriver-cross-builder sh -c "sh build-arm.sh release $HOST_TRIPLE"
@@ -43,15 +50,11 @@ jobs:
         mv artifacts/geckodriver geckodriver
         tar cvfz geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz geckodriver
         md5sum geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz > geckodriver-v$GECKODRIVER_VERSION-linux-$ARCH.tar.gz.md5
-
     - name: Generate release notes
       run: |
-        echo "NOTE:  This is an unofficial arm64 build and armhf of geckodriver v$GECKODRIVER_VERSION.  These binaries are compiled and built independently and are not provided by Mozilla." > release_notes.md
-        echo "" >> release_notes.md
-        echo "**NOTE: Mozilla has released geckodriver for linux-aarch64. Please use their official release instead of the unofficial one here. In the meantime, I have built linux-aarch64 to help make the transition easier. I will continue to build geckodriver linux-armv7.**" >> release_notes.md
+        echo "NOTE:  This is an unofficial build of geckodriver v$GECKODRIVER_VERSION.  These binaries are compiled and built independently and are not provided by Mozilla." > release_notes.md
         echo "" >> release_notes.md
         echo "For details of what is contained in this release, see the [official geckodriver release notes](https://github.com/mozilla/geckodriver/releases)." >> release_notes.md
-
     - name: Upload artifact binary
       uses: actions/upload-artifact@v3
       with:
