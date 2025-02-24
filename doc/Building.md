@@ -7,14 +7,23 @@ the WebDriver protocol. geckodriver translates WebDriver [commands],
 [responses], and [errors] to the [Marionette protocol], and acts
 as a proxy between [WebDriver] and [Marionette].
 
-To build geckodriver:
+To build geckodriver as part of a source Firefox build, add the
+following to `mozconfig`:
+
+```shell
+ac_add_options --enable-geckodriver
+```
+
+With this addition geckodriver will be built when Firefox is built. It
+can also be built alone by passing in the source path to the `mach
+build` command:
 
 ```shell
 % ./mach build testing/geckodriver
 ```
 
-If you use artifact builds you may build geckodriver using cargo,
-since mach in this case does not have a compile environment:
+Artifact builds don't download geckodriver by default, but it can be
+built using cargo:
 
 ```shell
 % cd testing/geckodriver

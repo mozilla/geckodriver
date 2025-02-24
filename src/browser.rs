@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::android::AndroidHandler;
+use crate::android::{AndroidError, AndroidHandler};
 use crate::capabilities::{FirefoxOptions, ProfileType};
 use crate::logging;
 use crate::prefs;
 use mozprofile::preferences::Pref;
 use mozprofile::profile::{PrefFile, Profile};
 use mozrunner::runner::{FirefoxProcess, FirefoxRunner, Runner, RunnerProcess};
+use std::env;
 use std::fs;
-use std::io::Read;
+use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::time;
+use uuid::Uuid;
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 
 /// A running Gecko instance.
@@ -56,6 +58,39 @@ impl Browser {
             }
         }
     }
+
+    pub(crate) fn create_file(&self, content: &[u8]) -> WebDriverResult<String> {
+        let addon_file = format!("addon-{}.xpi", Uuid::new_v4());
+        match self {
+            Browser::Remote(x) => {
+                let path = x.push_file(content, &addon_file).map_err(|e| {
+                    WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        format!("Failed to create an addon file: {}", e),
+                    )
+                })?;
+
+                Ok(path)
+            }
+            Browser::Local(_) | Browser::Existing(_) => {
+                let path = env::temp_dir().as_path().join(addon_file);
+                let mut xpi_file = fs::File::create(&path).map_err(|e| {
+                    WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        format!("Failed to create an addon file: {}", e),
+                    )
+                })?;
+                xpi_file.write_all(content).map_err(|e| {
+                    WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        format!("Failed to write data to the addon file: {}", e),
+                    )
+                })?;
+
+                Ok(path.display().to_string())
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -64,7 +99,7 @@ pub(crate) struct LocalBrowser {
     marionette_port: u16,
     prefs_backup: Option<PrefsBackup>,
     process: FirefoxProcess,
-    profile_path: Option<PathBuf>,
+    pub(crate) profile_path: Option<PathBuf>,
 }
 
 impl LocalBrowser {
@@ -72,8 +107,8 @@ impl LocalBrowser {
         options: FirefoxOptions,
         marionette_port: u16,
         jsdebugger: bool,
+        system_access: bool,
         profile_root: Option<&Path>,
-        enable_crash_reporter: bool,
     ) -> WebDriverResult<LocalBrowser> {
         let binary = options.binary.ok_or_else(|| {
             WebDriverError::new(
@@ -120,17 +155,18 @@ impl LocalBrowser {
         if jsdebugger {
             runner.arg("--jsdebugger");
         }
+        if system_access {
+            runner.arg("--remote-allow-system-access");
+        }
         if let Some(args) = options.args.as_ref() {
             runner.args(args);
         }
 
         // https://developer.mozilla.org/docs/Environment_variables_affecting_crash_reporting
-        if !enable_crash_reporter {
-            runner
-                .env("MOZ_CRASHREPORTER", "1")
-                .env("MOZ_CRASHREPORTER_NO_REPORT", "1")
-                .env("MOZ_CRASHREPORTER_SHUTDOWN", "1");
-        }
+        runner
+            .env("MOZ_CRASHREPORTER", "1")
+            .env("MOZ_CRASHREPORTER_NO_REPORT", "1")
+            .env("MOZ_CRASHREPORTER_SHUTDOWN", "1");
 
         let process = match runner.start() {
             Ok(process) => process,
@@ -232,7 +268,7 @@ fn read_marionette_port(profile_path: &Path) -> Option<u16> {
 #[derive(Debug)]
 /// A remote instance, running on a (target) Android device.
 pub(crate) struct RemoteBrowser {
-    handler: AndroidHandler,
+    pub(crate) handler: AndroidHandler,
     marionette_port: u16,
     prefs_backup: Option<PrefsBackup>,
 }
@@ -242,12 +278,12 @@ impl RemoteBrowser {
         options: FirefoxOptions,
         marionette_port: u16,
         websocket_port: Option<u16>,
+        system_access: bool,
         profile_root: Option<&Path>,
-        enable_crash_reporter: bool,
     ) -> WebDriverResult<RemoteBrowser> {
         let android_options = options.android.unwrap();
 
-        let handler = AndroidHandler::new(&android_options, marionette_port, websocket_port)?;
+        let handler = AndroidHandler::new(&android_options, marionette_port, system_access, websocket_port)?;
 
         // Profile management.
         let (mut profile, is_custom_profile) = match options.profile {
@@ -275,12 +311,7 @@ impl RemoteBrowser {
             )
         })?;
 
-        handler.prepare(
-            &profile,
-            options.args,
-            options.env.unwrap_or_default(),
-            enable_crash_reporter,
-        )?;
+        handler.prepare(&profile, options.args, options.env.unwrap_or_default())?;
 
         handler.launch()?;
 
@@ -308,6 +339,10 @@ impl RemoteBrowser {
 
     fn update_marionette_port(&mut self, port: u16) {
         self.marionette_port = port;
+    }
+
+    fn push_file(&self, content: &[u8], path: &str) -> Result<String, AndroidError> {
+        self.handler.push_as_file(content, path)
     }
 }
 

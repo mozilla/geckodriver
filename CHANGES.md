@@ -3,6 +3,66 @@
 
 All notable changes to this program are documented in this file.
 
+## 0.36.0 (2025-02-25, `a3d508507022`)
+
+### Known problems
+
+- _Startup hang with Firefox running in a container (e.g. snap, flatpak):_
+
+  When Firefox is packaged inside a container (like the default Firefox browser
+  shipped with Ubuntu 22.04), it may see a different filesystem to the host.
+  This can affect access to the generated profile directory, which may result
+  in a hang when starting Firefox. Workarounds are listed in the geckodriver
+  [usage documentation].
+
+### Added
+
+- Support for searching the Firefox Developer Edition’s default path on macOS.
+
+  Implemented by [Gatlin Newhouse].
+
+- Ability to push a WebExtension archive as created from a base64 encoded string
+  to an Android device.
+
+- Added an `allowPrivateBrowsing` field for POST `/session/{session id}/moz/addon/install`
+  to allow the installation of a WebExtension that is enabled in Private Browsing mode.
+
+- Introduced the [`--allow-system-access`] command line argument for geckodriver, which will
+  be required for future versions of Firefox (potentially starting with 138.0) to allow
+  testing in the `chrome` context.
+
+- Added support for preserving crash dumps for crash report analysis when
+  Firefox crashes. If the `MINIDUMP_SAVE_PATH` environment variable is set
+  to an existing folder, crash dumps will be saved accordingly. For mobile
+  devices, the generated minidump files will be automatically transferred
+  to the host machine.
+
+  For more details see the documentation of how to handle [crash reports].
+
+### Changed
+
+- Updated the type of the `x` and `y` fields of pointer move actions (mouse and touch)
+  from integer to fractional numbers to ensure a more precise input control.
+
+- Replaced `serde_yaml` with `yaml-rust` because it's no longer officially supported.
+
+- The `--enable-crash-reporter` command line argument has been deprecated to
+  prevent crash reports from being submitted to Socorro. This argument will be
+  completely removed in the next version.
+
+  Instead, use the `MINIDUMP_SAVE_PATH` environment variable to get minidump
+  files saved to a specified location.
+
+### Fixed
+
+- Fixed route registration for `WebAuthn` commands, which were introduced in
+  geckodriver 0.34.0 but mistakenly registered under `/sessions/` instead of
+  `/session/`, causing them to be non-functional.
+
+### Removed
+
+- Removed the `-no-remote` command-line argument usage for Firefox, which does no longer exist.
+
 ## 0.35.0 (2024-08-06, `9f0a0036bea4`)
 
 ### Known problems
@@ -29,6 +89,8 @@ All notable changes to this program are documented in this file.
   crash situation needs to be investigated. See our documentation for
   [crash reports] in how to share these with us.
 
+  Implemented by [Razvan Cojocaru].
+
 ### Changed
 
 - The validation of the `unhandledPromptBehavior` capability has been enhanced
@@ -40,12 +102,17 @@ All notable changes to this program are documented in this file.
 - The [Switch To Frame] command now correctly raises an "invalid argument"
   error when the `id` parameter is missing.
 
+  Implemented by [James Hendry].
+
 ### Removed
 
 - Removed support for session negotiation using the deprecated
   `desiredCapabilities` and `requiredCapabilities`.
+
+  Implemented by [James Hendry].
+
 - Removed support for the `moz:useNonSpecCompliantPointerOrigin` capability,
-  which has not bee supported since Firefox 116.
+  which has not been supported since Firefox 116.
 
 ## 0.34.0 (2024-01-03, `c44f0d09630a`)
 
@@ -1851,7 +1918,7 @@ and greater.
 
 [README]: https://github.com/mozilla/geckodriver/blob/master/README.md
 [crash reports]: <https://firefox-source-docs.mozilla.org/testing/geckodriver/CrashReports.html>
-[usage documentation]: <https://firefox-source-docs.mozilla.org/testing/geckodriver/Usage.html#Running-Firefox-in-an-container-based-package>
+[usage documentation]: <https://firefox-source-docs.mozilla.org/testing/geckodriver/Usage.html#running-firefox-in-a-container-based-package>
 [Browser Toolbox]: https://developer.mozilla.org/en-US/docs/Tools/Browser_Toolbox
 [WebDriver conformance]: https://wpt.fyi/results/webdriver/tests?label=experimental
 [`webSocketUrl`]: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/webSocketUrl
@@ -1862,8 +1929,8 @@ and greater.
 [Fission]: https://wiki.mozilla.org/Project_Fission
 [Capabilities]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Capabilities.html
 [Flags]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html
-[`--allow-hosts`]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html#code-allow-hosts-var-allow-hosts-var-code
-[`--allow-origins`]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html#code-allow-origins-var-allow-origins-var-code
+[`--allow-hosts`]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html#allow-hosts-allow-hosts
+[`--allow-origins`]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Flags.html#allow-origins-allow-origins
 [enable remote debugging on the Android device]: https://developers.google.com/web/tools/chrome-devtools/remote-debugging
 [macOS notarization]: https://firefox-source-docs.mozilla.org/testing/geckodriver/Notarization.html
 [Rust]: https://rustup.rs/
@@ -1958,3 +2025,4 @@ and greater.
 [Sven Jost]: https://github/mythsunwind
 [Vlad Filippov]: https://github.com/vladikoff
 [Olivier Tilloy]: https://github.com/oSoMoN
+[Gatlin Newhouse]: https://github.com/gatlinnewhouse

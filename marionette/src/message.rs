@@ -213,6 +213,7 @@ mod tests {
         let json =
             json!([0, 42, "WebDriver:FindElement", {"using": "css selector", "value": "value"}]);
         let find_element = webdriver::Command::FindElement(webdriver::Locator {
+            element: None,
             using: webdriver::Selector::Css,
             value: "value".into(),
         });

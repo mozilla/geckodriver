@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 name = "geckodriver"
-version = "0.35.0"
+version = "0.36.0"
 authors = ["Mozilla"]
 include = [
     "/.cargo",
@@ -31,21 +31,21 @@ hyper = "0.14"
 icu_segmenter = { version = "1.5", default-features = false, features = ["auto", "compiled_data"] }
 lazy_static = "1.0"
 log = { version = "0.4", features = ["std"] }
-marionette = "0.6.0"
-mozdevice = "0.5.3"
-mozprofile = "0.9.3"
-mozrunner = "0.15.3"
+marionette = "0.7.0"
+mozdevice = "0.5.4"
+mozprofile = "0.9.4"
+mozrunner = "0.15.4"
 mozversion = "0.5.3"
 regex = { version="1.0", default-features = false, features = ["perf", "std"] }
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-serde_yaml = "0.8"
 tempfile = "3"
 thiserror = "1"
 url = "2.4"
 uuid = { version = "1.0", features = ["v4"] }
-webdriver = "0.51.0"
+webdriver = "0.52.0"
+yaml-rust = "0.4.5"
 zip = { version = "2.1.2", default-features = false, features = ["deflate-flate2", "flate2"] }
 mozilla-central-workspace-hack = { version = "0.1", features = ["geckodriver"], optional = true }
 
