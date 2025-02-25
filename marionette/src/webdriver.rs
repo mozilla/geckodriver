@@ -14,6 +14,8 @@ pub struct Url {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Locator {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub element: Option<String>,
     pub using: Selector,
     pub value: String,
 }
@@ -251,18 +253,6 @@ pub enum Command {
     FindElement(Locator),
     #[serde(rename = "WebDriver:FindElements")]
     FindElements(Locator),
-    #[serde(rename = "WebDriver:FindElement")]
-    FindElementElement {
-        element: String,
-        using: Selector,
-        value: String,
-    },
-    #[serde(rename = "WebDriver:FindElements")]
-    FindElementElements {
-        element: String,
-        using: Selector,
-        value: String,
-    },
     #[serde(rename = "WebDriver:FindElementFromShadowRoot")]
     FindShadowRootElement {
         #[serde(rename = "shadowRoot")]
@@ -360,10 +350,6 @@ pub enum Command {
     #[serde(rename = "WebDriver:SwitchToWindow")]
     SwitchToWindow(Window),
     #[serde(rename = "WebDriver:TakeScreenshot")]
-    TakeElementScreenshot(ScreenshotOptions),
-    #[serde(rename = "WebDriver:TakeScreenshot")]
-    TakeFullScreenshot(ScreenshotOptions),
-    #[serde(rename = "WebDriver:TakeScreenshot")]
     TakeScreenshot(ScreenshotOptions),
     #[serde(rename = "WebAuthn:AddVirtualAuthenticator")]
     WebAuthnAddVirtualAuthenticator(AuthenticatorParameters),
@@ -436,6 +422,7 @@ mod tests {
             "value": "link text",
         });
         let data = Locator {
+            element: None,
             using: Selector::PartialLinkText,
             value: "link text".into(),
         };
@@ -475,6 +462,7 @@ mod tests {
     #[test]
     fn test_command_with_params() {
         let locator = Locator {
+            element: None,
             using: Selector::Css,
             value: "value".into(),
         };
@@ -533,11 +521,11 @@ mod tests {
     #[test]
     fn test_json_command_as_struct() {
         assert_ser(
-            &Command::FindElementElement {
-                element: "foo".into(),
+            &Command::FindElement(Locator {
+                element: Some("foo".into()),
                 using: Selector::XPath,
                 value: "bar".into(),
-            },
+            }),
             json!({"WebDriver:FindElement": {"element": "foo", "using": "xpath", "value": "bar" }}),
         );
     }

@@ -24,6 +24,11 @@ and required versions of Selenium and Firefox:
  </thead>
  </thead>
  <tr>
+  <td>0.36.0
+  <td>≥ 3.11 (3.14 Python)
+  <td>128 ESR
+  <td>n/a
+ <tr>
   <td>0.35.0
   <td>≥ 3.11 (3.14 Python)
   <td>115 ESR

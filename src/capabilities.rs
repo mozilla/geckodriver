@@ -112,7 +112,7 @@ impl<'a> FirefoxCapabilities<'a> {
     }
 }
 
-impl<'a> BrowserCapabilities for FirefoxCapabilities<'a> {
+impl BrowserCapabilities for FirefoxCapabilities<'_> {
     fn init(&mut self, capabilities: &Capabilities) {
         self.set_binary(capabilities);
     }

@@ -27,6 +27,21 @@ origin will be able to make requests to geckodriver. For example
 service on the origin with scheme `https`, hostname `webdriver.test`,
 and port `8080` to access the geckodriver instance.
 
+## <code>-\\-allow-system-access</code>
+
+A boolean flag required to enable browser UI testing, starting with Firefox 138.
+
+This flag allows WebDriver commands to target Firefox's parent process,
+enabling interaction with UI elements and access to elevated Gecko APIs that
+are typically unavailable when automating web content. In detail, it enables
+the Mozilla-specific `/session/{sessionId}/moz/context` HTTP endpoint for
+WebDriver Classic, allowing switching between tab automation and full
+Firefox UI control.
+
+**Important note**: Enabling this flag grants WebDriver clients the same
+privileges as the Firefox UI process, providing full system access.
+It should only be used when absolutely necessary.
+
 ## <code>-\\-android-storage <var>ANDROID_STORAGE</var></code>
 
 **Deprecation warning**: This argument is deprecated and planned to be removed
