@@ -1,0 +1,62 @@
+//package seleniummaven;
+//
+//import org.openqa.selenium.WebDriver;
+//import org.openqa.selenium.chrome.ChromeDriver;
+//
+//public class seleniumclass {
+//	public static void main(String[] args) {
+//		
+//		WebDriver driver = new ChromeDriver();
+//		
+//		driver.get("https://www.google.com/");
+//	}
+//}
+
+
+package seleniummaven;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+public class seleniumclass {
+	public static void main(String[] args) throws InterruptedException {
+		
+		WebDriver driver = new ChromeDriver();
+		
+		driver.get("https://github.com/login");
+		Thread.sleep(3000);
+		WebElement usernameTxt=driver.findElement(By.id("login_field"));
+		if(usernameTxt.isDisplayed()) {
+			if(usernameTxt.isEnabled()) {
+				usernameTxt.sendKeys("MAhathi");
+				String enteredText= usernameTxt.getAttribute("value");
+				System.out.print(enteredText);
+				Thread.sleep(3000);
+				usernameTxt.clear();
+			}
+			else
+				System.err.print("username textbox is not enabled");
+		}
+		else
+			System.err.print("username textbox is not displayed");
+		
+		WebElement Password = driver.findElement(By.id("password"));
+		if(Password.isDisplayed()) {
+			if(Password.isEnabled()) {
+				Password.sendKeys("maha@20");
+				String enteredText= Password.getAttribute("value");
+				System.out.print(enteredText);
+				Thread.sleep(3000);
+				usernameTxt.clear();
+			}
+			else
+				System.err.print("Password textbox is not enabled");
+		}
+		else
+			System.err.print("Password textbox is not displayed");
+						
+			}
+	}
+
