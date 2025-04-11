@@ -15,6 +15,13 @@ All notable changes to this program are documented in this file.
   in a hang when starting Firefox. Workarounds are listed in the geckodriver
   [usage documentation].
 
+- Virtual Authenticator endpoints are currently unreliable.
+
+  Since their introduction in geckodriver 0.34.0, several Virtual Authenticator
+  endpoints have been reported as non-functional or behaving unexpectedly.
+  We recommend avoiding the use of these commands until the known issues have
+  been resolved.
+
 ### Added
 
 - Support for searching the Firefox Developer Edition’s default path on macOS.
@@ -43,6 +50,10 @@ All notable changes to this program are documented in this file.
 
 - Updated the type of the `x` and `y` fields of pointer move actions (mouse and touch)
   from integer to fractional numbers to ensure a more precise input control.
+
+  Note: Support for fractional values is available starting with Firefox 137.
+  For older versions, clients or tests must explicitly pass integer values for
+  both fields.
 
 - Replaced `serde_yaml` with `yaml-rust` because it's no longer officially supported.
 
@@ -74,6 +85,13 @@ All notable changes to this program are documented in this file.
   This can affect access to the generated profile directory, which may result
   in a hang when starting Firefox. Workarounds are listed in the geckodriver
   [usage documentation].
+
+- Virtual Authenticator endpoints are currently unreliable.
+
+  Since their introduction in geckodriver 0.34.0, several Virtual Authenticator
+  endpoints have been reported as non-functional or behaving unexpectedly.
+  We recommend avoiding the use of these commands until the known issues have
+  been resolved.
 
 ### Added
 
@@ -125,6 +143,13 @@ All notable changes to this program are documented in this file.
   This can affect access to the generated profile directory, which may result
   in a hang when starting Firefox. Workarounds are listed in the geckodriver
   [usage documentation].
+
+- Virtual Authenticator endpoints are currently unreliable.
+
+  Since their introduction in geckodriver 0.34.0, several Virtual Authenticator
+  endpoints have been reported as non-functional or behaving unexpectedly.
+  We recommend avoiding the use of these commands until the known issues have
+  been resolved.
 
 ### Added
 
