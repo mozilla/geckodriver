@@ -166,8 +166,8 @@ mod tests {
     #[test]
     fn test_timeouts_response() {
         let data = Timeouts {
-            implicit: Some(1000),
-            page_load: Some(200000),
+            implicit: Some(Some(1000)),
+            page_load: Some(Some(200000)),
             script: Some(Some(60000)),
         };
         assert_ser_de(

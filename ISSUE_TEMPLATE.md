@@ -24,7 +24,7 @@ Error and stacktrace produced by client.
 ## Trace-level log
 
 <!--
-See https://searchfox.org/mozilla-central/source/testing/geckodriver/doc/TraceLogs.md
+See https://searchfox.org/firefox-main/source/testing/geckodriver/doc/TraceLogs.md
 for how to produce a trace-level log.
 
 For trace logs with more than 20 lines please add its contents as attachment.

@@ -69,8 +69,8 @@ Firefox (1), and a set of recommended preferences set on startup (2).
 
 These can be perused here:
 
-  1. [testing/geckodriver/src/prefs.rs](https://searchfox.org/mozilla-central/source/testing/geckodriver/src/prefs.rs)
-  2. [remote/components/marionette.js](https://searchfox.org/mozilla-central/source/remote/components/marionette.js)
+  1. [testing/geckodriver/src/prefs.rs](https://searchfox.org/firefox-main/source/testing/geckodriver/src/prefs.rs)
+  2. [remote/components/marionette.js](https://searchfox.org/firefox-main/source/remote/components/marionette.js)
 
 As mentioned, these are _recommended_ preferences, and any user-defined
 preferences in the [user.js file] or as part of the [`prefs` capability]

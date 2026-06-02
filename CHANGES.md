@@ -3,6 +3,82 @@
 
 All notable changes to this program are documented in this file.
 
+## 0.37.0 (2026-06-03, `253b85235865`)
+
+### Known problems
+
+- _Startup hang with Firefox running in a container (e.g. snap, flatpak):_
+
+  When Firefox is packaged inside a container (like the default Firefox browser
+  shipped with Ubuntu versions since 22.04), it may see a different filesystem
+  to the host. This can affect access to the generated profile directory, which
+  may result in a hang when starting Firefox. Workarounds are listed in the
+  geckodriver [usage documentation].
+
+### Added
+
+- Added full support for the [Web Authentication specification](https://www.w3.org/TR/webauthn-2/#sctn-automation).
+  Requires Firefox 152 or later.
+
+- Added support for the [Global Privacy Control specification](https://w3c.github.io/gpc/#automation).
+  Requires Firefox 147 or later.
+
+- Added support for the `unhandledPromptBehavior.file` capability, which controls
+  how file dialogs are handled during automation.
+  Requires Firefox 147 or later.
+
+### Changed
+
+- Firefox on Android now detects early exits during startup, preventing
+  geckodriver from making prolonged connection attempts to a process that
+  has already terminated.
+
+- On Linux Snap installations, geckodriver now launches Firefox using
+  the direct binary path, improving compatibility with containerized
+  environments.
+
+- The `implicit` and `pageLoad` timeouts now accept `null` as a value,
+  which disables the respective timeout.
+
+- When the Android test runner fails to start, geckodriver now
+  automatically retries the launch once before reporting an error.
+
+- When geckodriver is terminated (e.g. via SIGTERM), it now attempts
+  a graceful shutdown of Firefox first, falling back to a forced kill
+  if necessary to avoid leaving behind orphaned processes.
+
+- Invalid files encountered when extracting a custom profile now
+  raise an error.
+
+- Updated geckodriver to the Rust 2024 edition.
+
+### Fixed
+
+- Fixed an issue where an already running Firefox package on Android
+  was not correctly force-stopped before launching a new session.
+
+- Fixed retrieval of crash minidump files from the Firefox profile
+  directory.
+
+### Removed
+
+- Linux 32-bit builds have been discontinued.
+
+  Starting with Firefox 145, Mozilla no longer ships binaries for 32-bit (x86) Linux. As a result, geckodriver binaries for that platform are no longer provided either.
+
+  If you still need a 32-bit Linux build of geckodriver, you can install it via `cargo install` or cross-compile it yourself:
+
+  ```shell
+  cargo build --target i686-unknown-linux-gnu
+  ```
+
+- Removed FTP proxy support from WebDriver capabilities, as FTP
+  proxying is no longer supported by modern browsers.
+
+- Removed the deprecated `--enable-crash-reporter` command line argument.
+  Use the `MINIDUMP_SAVE_PATH` environment variable instead to preserve
+  crash dump files.
+
 ## 0.36.0 (2025-02-25, `a3d508507022`)
 
 ### Known problems

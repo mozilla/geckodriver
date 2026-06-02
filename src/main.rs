@@ -1,11 +1,11 @@
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 extern crate chrono;
 #[macro_use]
 extern crate clap;
 #[macro_use]
 extern crate lazy_static;
-extern crate hyper;
+extern crate http;
 extern crate marionette as marionette_rs;
 extern crate mozdevice;
 extern crate mozprofile;
@@ -78,7 +78,6 @@ enum Operation {
         allow_hosts: Vec<Host>,
         allow_origins: Vec<Url>,
         settings: MarionetteSettings,
-        deprecated_enable_crash_reporter: bool,
         deprecated_storage_arg: bool,
     },
 }
@@ -211,7 +210,9 @@ fn parse_args(args: &ArgMatches) -> ProgramResult<Operation> {
             tempfile::tempdir()
         };
         if tmp_dir.is_err() {
-            bail!("Unable to write to temporary directory; consider --profile-root with a writeable directory")
+            bail!(
+                "Unable to write to temporary directory; consider --profile-root with a writeable directory"
+            )
         }
     }
 
@@ -265,7 +266,6 @@ fn parse_args(args: &ArgMatches) -> ProgramResult<Operation> {
         allow_origins,
         address,
         settings,
-        deprecated_enable_crash_reporter: args.get_flag("enable_crash_reporter"),
         deprecated_storage_arg: args.contains_id("android_storage"),
     })
 }
@@ -282,7 +282,6 @@ fn inner_main(operation: Operation, cmd: &mut Command) -> ProgramResult<()> {
             allow_hosts,
             allow_origins,
             settings,
-            deprecated_enable_crash_reporter,
             deprecated_storage_arg,
         } => {
             if let Some(ref level) = log_level {
@@ -294,10 +293,6 @@ fn inner_main(operation: Operation, cmd: &mut Command) -> ProgramResult<()> {
             if deprecated_storage_arg {
                 warn!("--android-storage argument is deprecated and will be removed soon.");
             };
-
-            if deprecated_enable_crash_reporter {
-                warn!("--enable-crash-reporter argument is deprecated and will be removed in the next version.");
-            }
 
             let handler = MarionetteHandler::new(settings);
             let listening = webdriver::server::start(
@@ -392,12 +387,6 @@ fn make_command() -> Command {
                 .requires("marionette_port")
                 .action(ArgAction::SetTrue)
                 .help("Connect to an existing Firefox instance"),
-        )
-        .arg(
-            Arg::new("enable_crash_reporter")
-                .long("enable-crash-reporter")
-                .action(ArgAction::SetTrue)
-                .help("Enable the Firefox crash reporter for diagnostic purposes (deprecated)"),
         )
         .arg(
             Arg::new("help")

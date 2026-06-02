@@ -20,7 +20,15 @@ and a geckodriver release from <https://github.com/mozilla/geckodriver/releases>
 
 - Use a geckodriver that runs in the same container filesystem as the Firefox
 package. For example on Ubuntu `/snap/bin/geckodriver` will work with the
-default Firefox.
+default Firefox. It is critical to use this `geckodriver` path from under
+`/snap/bin` otherwise your GeckoDriver instance will NOT run under the correct
+Snap environment and this might lead to weird bugs, as well as break things
+completely. This would be the case if you run a `core24` enabled build of
+Firefox on a Ubuntu 22.04 system where libraries symbols may mismatch. If you
+need to force the `binary_location`, then you will have to use the full path
+under `/snap/firefox/current/usr/lib/firefox/firefox` in combination with the
+correct previous path to GeckoDriver. Using `/snap/bin/firefox` will only
+result in a `binary is not a Firefox executable` error.
 
 - Set the `--profile-root` command line option to write the profile to a
 directory accessible to both Firefox and geckodriver, for example a non-hidden
