@@ -22,7 +22,7 @@
 //! and `Level::Config` becomes `log::Level::Debug`.
 //!
 //! [`log`]: https://docs.rs/log/newest/log/
-//! [Log.sys.mjs]: https://searchfox.org/mozilla-central/source/toolkit/modules/Log.sys.mjs
+//! [Log.sys.mjs]: https://searchfox.org/firefox-main/source/toolkit/modules/Log.sys.mjs
 //! [`error!`]: https://docs.rs/log/newest/log/macro.error.html
 //! [`warn!`]: https://docs.rs/log/newest/log/macro.warn.html
 //! [`info!`]: https://docs.rs/log/newest/log/macro.info.html
@@ -56,7 +56,7 @@ const LOGGED_TARGETS: &[&str] = &[
 
 /// Logger levels from [Log.sys.mjs].
 ///
-/// [Log.sys.mjs]: https://searchfox.org/mozilla-central/source/toolkit/modules/Log.sys.mjs
+/// [Log.sys.mjs]: https://searchfox.org/firefox-main/source/toolkit/modules/Log.sys.mjs
 #[repr(usize)]
 #[derive(Clone, Copy, Eq, Debug, Hash, PartialEq)]
 pub enum Level {
@@ -275,6 +275,7 @@ mod tests {
 
     use mozprofile::preferences::{Pref, PrefValue};
 
+    // Mutex used to run specific logging tests sequentially.
     lazy_static! {
         static ref LEVEL_MUTEX: Mutex<()> = Mutex::new(());
     }
@@ -359,14 +360,14 @@ mod tests {
 
     #[test]
     fn test_max_level() {
-        let _guard = LEVEL_MUTEX.lock();
+        let _guard = LEVEL_MUTEX.lock().unwrap();
         set_max_level(Level::Info);
         assert_eq!(max_level(), Level::Info);
     }
 
     #[test]
     fn test_set_max_level() {
-        let _guard = LEVEL_MUTEX.lock();
+        let _guard = LEVEL_MUTEX.lock().unwrap();
         set_max_level(Level::Error);
         assert_eq!(max_level(), Level::Error);
         set_max_level(Level::Fatal);
@@ -375,7 +376,7 @@ mod tests {
 
     #[test]
     fn test_init_with_level() {
-        let _guard = LEVEL_MUTEX.lock();
+        let _guard = LEVEL_MUTEX.lock().unwrap();
         init_with_level(Level::Debug, false).unwrap();
         assert_eq!(max_level(), Level::Debug);
         assert!(init_with_level(Level::Warn, false).is_err());

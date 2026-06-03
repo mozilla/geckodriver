@@ -39,21 +39,4 @@ If you submitted a crash please do not forget to also add the link of the
 crash report to the geckodriver issue.
 
 [crash reporter]: https://support.mozilla.org/kb/mozillacrashreporter#w_viewing-reports-outside-of-firefox
-[view the crash reports]: https://support.mozilla.orgkb/mozillacrashreporter#w_viewing-crash-reports
-
-## Enabling the crash reporter
-
-**Deprecation warning**: `--enable-crash-reporter` argument is deprecated and planned
-to be removed with the 0.37.0 release of geckodriver. As such it shouldn't be used
-with version 0.36.0 or later anymore. Please use the solution described above.
-
-By default geckodriver disables the crash reporter so it doesn't submit crash
-reports to Mozilla's crash reporting system, and also doesn't interfere with
-testing.
-
-This behaviour can be overridden by using the command line argument
-`--enable-crash-reporter`. You can [view the crash reports] and share it with
-us after submission.
-
-**Important**: Please only enable the crash reporter if the above mentioned
-solution does not work.
+[view the crash reports]: https://support.mozilla.org/kb/mozillacrashreporter#w_viewing-crash-reports

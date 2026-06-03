@@ -83,9 +83,9 @@ For each crate:
 [cargo-semver-checks]: https://crates.io/crates/cargo-semver-checks
 [audit criteria]: https://mozilla.github.io/cargo-vet/audit-criteria.html
 [wildcard audit entries]: https://mozilla.github.io/cargo-vet/wildcard-audit-entries.html
-[Cargo.toml]: https://searchfox.org/mozilla-central/source/testing/geckodriver/Cargo.toml
-[Cargo.lock]: https://searchfox.org/mozilla-central/source/Cargo.lock
-[audits.toml]: https://searchfox.org/mozilla-central/source/supply-chain/audits.toml
+[Cargo.toml]: https://searchfox.org/firefox-main/source/testing/geckodriver/Cargo.toml
+[Cargo.lock]: https://searchfox.org/firefox-main/source/Cargo.lock
+[audits.toml]: https://searchfox.org/firefox-main/source/supply-chain/audits.toml
 
 ### Update the change log
 
@@ -124,11 +124,11 @@ mention of this.  Lines are optimally formatted at roughly 72 columns
 to make the file readable in a text editor as well as rendered HTML.
 fmt(1) does a splendid job at text formatting.
 
-[CHANGES.md]: https://searchfox.org/mozilla-central/source/testing/geckodriver/CHANGES.md
-[webdriver]: https://searchfox.org/mozilla-central/source/testing/webdriver
-[marionette]: https://searchfox.org/mozilla-central/source/testing/geckodriver/marionette
-[rust-mozrunner]: https://searchfox.org/mozilla-central/source/testing/mozbase/rust/mozrunner
-[rust-mozdevice]: https://searchfox.org/mozilla-central/source/testing/mozbase/rust/mozdevice
+[CHANGES.md]: https://searchfox.org/firefox-main/source/testing/geckodriver/CHANGES.md
+[webdriver]: https://searchfox.org/firefox-main/source/testing/webdriver
+[marionette]: https://searchfox.org/firefox-main/source/testing/geckodriver/marionette
+[rust-mozrunner]: https://searchfox.org/firefox-main/source/testing/mozbase/rust/mozrunner
+[rust-mozdevice]: https://searchfox.org/firefox-main/source/testing/mozbase/rust/mozdevice
 
 ### Bump the version number and update the support page
 
@@ -150,7 +150,7 @@ including the required versions of Selenium, and Firefox.
 Finally commit all those changes.
 
 [semantic versioning]: http://semver.org/
-[support page]: https://searchfox.org/mozilla-central/source/testing/geckodriver/doc/Support.md
+[support page]: https://searchfox.org/firefox-main/source/testing/geckodriver/doc/Support.md
 
 ### Add the changeset id
 
@@ -230,8 +230,8 @@ Now verify that geckodriver builds correctly by running:
 % cargo build
 ```
 
-[README.md]: https://searchfox.org/mozilla-central/source/testing/geckodriver/README.md
-[testing/geckodriver]: https://searchfox.org/mozilla-central/source/testing/geckodriver
+[README.md]: https://searchfox.org/firefox-main/source/testing/geckodriver/README.md
+[testing/geckodriver]: https://searchfox.org/firefox-main/source/testing/geckodriver
 
 ### Commit local changes
 
@@ -280,6 +280,12 @@ geckodriver needs to be manually released on github.com. Therefore start to
 4. Find the signed geckodriver archives in the [taskcluster index] by
    replacing %changeset% with the full release changeset id. Rename the
    individual files so the basename looks like 'geckodriver-v%version%-%platform%'.
+
+   The macOS build is a universal binary (x86_64 + aarch64). For
+   backward compatibility, create a copy of the macOS archive with
+   the `-aarch64` platform suffix so that existing consumers that
+   reference the architecture-specific filename continue to work.
+
    Upload them all, including the checksum files for the Linux platforms.
 
 5. Before announcing the release on GitHub publish the geckodriver crate as well

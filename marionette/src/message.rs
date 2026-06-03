@@ -120,6 +120,13 @@ pub enum Message {
     Outgoing(Response),
 }
 
+impl Message {
+    pub fn encode(&self) -> Result<String, serde_json::Error> {
+        let data = serde_json::to_string(self)?;
+        Ok(format!("{}:{}", data.len(), data))
+    }
+}
+
 struct MessageVisitor;
 
 impl<'de> Visitor<'de> for MessageVisitor {

@@ -1,6 +1,7 @@
 use crate::capabilities::AndroidOptions;
 use mozdevice::{AndroidStorage, Device, Host, RemoteMetadata, UnixPathBuf};
 use mozprofile::profile::Profile;
+use std::env;
 use std::fs::File;
 use std::io;
 use std::path::PathBuf;
@@ -264,11 +265,19 @@ impl AndroidHandler {
         })
     }
 
-    pub fn copy_minidumps_files(&self, save_path: &str) -> Result<()> {
+    pub fn copy_minidumps_files(&self) -> Result<()> {
         let minidumps_path = self.profile.join("minidumps");
 
         match self.process.device.list_dir(&minidumps_path) {
             Ok(entries) => {
+                let save_path = match env::var("MINIDUMP_SAVE_PATH").map(PathBuf::from) {
+                    Ok(path) => path,
+                    Err(_) => {
+                        debug!("Set MINIDUMP_SAVE_PATH to store crash minidumps.");
+                        return Ok(());
+                    }
+                };
+
                 for entry in entries {
                     if let RemoteMetadata::RemoteFile(_) = entry.metadata {
                         let file_path = minidumps_path.join(&entry.name);
@@ -280,7 +289,7 @@ impl AndroidHandler {
                             .unwrap_or(String::from(""));
 
                         if extension == "dmp" || extension == "extra" {
-                            let mut dest_path = PathBuf::from(save_path);
+                            let mut dest_path = save_path.clone();
                             dest_path.push(&entry.name);
 
                             self.process
@@ -288,7 +297,7 @@ impl AndroidHandler {
                                 .pull(&file_path, &mut File::create(dest_path.as_path())?)?;
 
                             debug!(
-                                "Copied minidump file {:?} from the device to the local path {:?}.",
+                                "Copied minidump file {:?} from the device to {:?}.",
                                 entry.name, save_path
                             );
                         }
@@ -421,7 +430,7 @@ impl AndroidHandler {
         Ok(())
     }
 
-    pub fn launch(&self) -> Result<()> {
+    pub fn launch(&self) -> Result<u32> {
         // TODO: Remove the usage of intent arguments once Fennec is no longer
         // supported. Packages which are using GeckoView always read the arguments
         // via the YAML configuration file.
@@ -438,32 +447,41 @@ impl AndroidHandler {
             "Launching {}/{}",
             self.process.package, self.process.activity
         );
-        self.process
-            .device
-            .launch(
+
+        // A counter to how many times to try launching the package.
+        let max_start_attempts = 2;
+        let mut n = 0;
+
+        loop {
+            match self.process.device.launch(
                 &self.process.package,
                 &self.process.activity,
                 &intent_arguments,
-            )
-            .map_err(|e| {
-                let message = format!(
-                    "Could not launch Android {}/{}: {}",
-                    self.process.package, self.process.activity, e
-                );
-                mozdevice::DeviceError::Adb(message)
-            })?;
+            ) {
+                Ok(pid) => break Ok(pid),
+                Err(e) => {
+                    n += 1;
+                    if n < max_start_attempts
+                        && e.to_string().contains("Resource temporarily unavailable")
+                    {
+                        debug!(
+                            "Failed the {} attempt to launch Android {}/{}: {}, wait for 2 seconds and try starting again",
+                            n, self.process.package, self.process.activity, e
+                        );
 
-        Ok(())
-    }
+                        std::thread::sleep(std::time::Duration::from_secs(2));
 
-    pub fn push_as_file(&self, content: &[u8], path: &str) -> Result<String> {
-        let mut dest = self.test_root.clone();
-        dest.push(path);
-
-        let buffer = &mut io::Cursor::new(content);
-        self.process.device.push(buffer, &dest, 0o777)?;
-
-        Ok(dest.display().to_string())
+                        continue;
+                    } else {
+                        let message = format!(
+                            "Could not launch Android {}/{}: {}",
+                            self.process.package, self.process.activity, e
+                        );
+                        return Err(AndroidError::from(mozdevice::DeviceError::Adb(message)));
+                    }
+                }
+            }
+        }
     }
 
     pub fn force_stop(&self) -> Result<()> {
@@ -501,7 +519,8 @@ mod test {
 
     fn run_handler_storage_test(package: &str, storage: AndroidStorageInput) {
         let options = AndroidOptions::new(package.to_owned(), storage);
-        let handler = AndroidHandler::new(&options, 4242, true, None).expect("has valid Android handler");
+        let handler =
+            AndroidHandler::new(&options, 4242, true, None).expect("has valid Android handler");
 
         assert_eq!(handler.options, options);
         assert_eq!(handler.marionette_host_port, 4242);

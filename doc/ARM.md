@@ -47,4 +47,4 @@ cross-compile ARMv7 from a Linux host system is as follows:
       ```
 
 [central]: https://hg.mozilla.org/mozilla-central/
-[testing/geckodriver/.cargo/config.toml]: https://searchfox.org/mozilla-central/source/testing/geckodriver/.cargo/config.toml
+[testing/geckodriver/.cargo/config.toml]: https://searchfox.org/firefox-main/source/testing/geckodriver/.cargo/config.toml
