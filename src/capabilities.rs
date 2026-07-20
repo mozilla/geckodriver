@@ -5,14 +5,14 @@
 use crate::command::LogOptions;
 use crate::logging::Level;
 use crate::marionette::MarionetteSettings;
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use mozdevice::AndroidStorageInput;
 use mozprofile::preferences::Pref;
 use mozprofile::profile::Profile;
-use mozrunner::firefox_args::{get_arg_value, parse_args, Arg};
+use mozrunner::firefox_args::{Arg, get_arg_value, parse_args};
 use mozrunner::runner::platform::firefox_default_path;
-use mozversion::{firefox_binary_version, firefox_version, Version};
+use mozversion::{Version, firefox_binary_version, firefox_version};
 use regex::bytes::Regex;
 use serde_json::{Map, Value};
 use std::collections::BTreeMap;
@@ -477,6 +477,7 @@ impl FirefoxOptions {
                         Arg::Marionette
                             | Arg::RemoteAllowHosts
                             | Arg::RemoteAllowOrigins
+                            | Arg::RemoteAllowSystemAccess
                             | Arg::RemoteDebuggingPort
                     )
                 })
@@ -486,6 +487,24 @@ impl FirefoxOptions {
                     format!("Argument {} can't be set via capabilities", arg),
                 ));
             };
+        }
+
+        if let Some(env) = rv.env.as_ref() {
+            // Block environment variables that should not be set via session capabilities.
+            let forbidden = env
+                .iter()
+                .filter(|(name, _value)| name == "MOZ_REMOTE_ALLOW_SYSTEM_ACCESS")
+                .map(|(name, _)| name.as_str())
+                .collect::<Vec<&str>>();
+            if !forbidden.is_empty() {
+                return Err(WebDriverError::new(
+                    ErrorStatus::InvalidArgument,
+                    format!(
+                        "Environment variables {} can't be set via capabilities",
+                        forbidden.join(", ")
+                    ),
+                ));
+            }
         }
 
         let has_web_socket_url = matched
@@ -878,7 +897,7 @@ mod tests {
 
     use self::mozprofile::preferences::Pref;
     use super::*;
-    use serde_json::{json, Map, Value};
+    use serde_json::{Map, Value, json};
     use std::fs::File;
     use std::io::Read;
     use url::{Host, Url};
@@ -957,6 +976,7 @@ mod tests {
             "--marionette",
             "--remote-allow-hosts",
             "--remote-allow-origins",
+            "--remote-allow-system-access",
             "--remote-debugging-port",
         ];
 
@@ -1184,12 +1204,13 @@ mod tests {
             firefox_opts.insert("androidPackage".into(), json!(package));
 
             let opts = make_options(firefox_opts, None).expect("valid firefox options");
-            assert!(opts
-                .android
-                .unwrap()
-                .activity
-                .unwrap()
-                .contains("IntentReceiverActivity"));
+            assert!(
+                opts.android
+                    .unwrap()
+                    .activity
+                    .unwrap()
+                    .contains("IntentReceiverActivity")
+            );
         }
     }
 
@@ -1361,6 +1382,20 @@ mod tests {
     fn fx_options_env_invalid_value() {
         let mut env: Map<String, Value> = Map::new();
         env.insert("TEST_KEY".into(), Value::Number(1.into()));
+
+        let mut firefox_opts = Capabilities::new();
+        firefox_opts.insert("env".into(), env.into());
+
+        make_options(firefox_opts, None).expect_err("invalid firefox options");
+    }
+
+    #[test]
+    fn fx_options_env_blocked() {
+        let mut env: Map<String, Value> = Map::new();
+        env.insert(
+            "MOZ_REMOTE_ALLOW_SYSTEM_ACCESS".into(),
+            Value::String("1".into()),
+        );
 
         let mut firefox_opts = Capabilities::new();
         firefox_opts.insert("env".into(), env.into());

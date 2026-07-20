@@ -337,9 +337,6 @@ impl AndroidHandler {
                 self.profile.display().to_string(),
             ]);
 
-            if self.system_access {
-                args_yaml.push("--remote-allow-system-access".into());
-            }
             args_yaml.append(&mut args.unwrap_or_default());
             args_yaml.into_iter().map(Yaml::String).collect()
         };
@@ -365,6 +362,12 @@ impl AndroidHandler {
             Yaml::String("MOZ_CRASHREPORTER_SHUTDOWN".to_owned()),
             Yaml::String("1".to_owned()),
         );
+        if self.system_access {
+            env.insert(
+                Yaml::String("MOZ_REMOTE_ALLOW_SYSTEM_ACCESS".to_owned()),
+                Yaml::String("1".to_owned()),
+            );
+        }
 
         let config_yaml = {
             let mut config = Hash::new();
