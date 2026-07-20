@@ -9,10 +9,15 @@ from [Mozilla’s CI infrastructure], we are currently in between two
 worlds: development happens in m-c, but releases continue to be made
 from GitHub.
 
-In any case, the steps to release geckodriver are as follows:
+A [releasing script] automates most of the steps below to limit potential
+manual failures. It has subcommands for each individual step — run
+`--help` for usage details.
 
-[mozilla-central]: https://hg.mozilla.org/mozilla-central/
+The steps to release geckodriver are as follows:
+
+[mozilla-central]: https://github.com/mozilla-firefox/firefox/tree/main
 [Mozilla’s CI infrastructure]: https://treeherder.mozilla.org/
+[releasing script]: https://bugzilla.mozilla.org/show_bug.cgi?id=1911056
 
 ### Update in-tree dependency crates
 
@@ -102,12 +107,11 @@ It is good practice to also include relevant information from the
 since these are the most important dependencies of geckodriver and a lot
 of its functionality is implemented there.
 
-To get a list of all the changes for one of the above crates one of the following
-commands can be used:
+To get a list of all the changes for one of the above crates the following
+command can be used:
 
 ```shell
-% hg log -M -r <revision>::central --template "{node|short}\t{desc|firstline}\n" <path>
-% git log --reverse $(git cinnabar hg2git <revision>)..HEAD --pretty="%s" <path>
+% git log --reverse <revision>..HEAD --pretty="%s" <path>
 ```
 
 where `<revision>` is the changeset of the last geckodriver release and `<path>`
@@ -199,16 +203,10 @@ _release_, from where releases are made.
 
 Before we copy the code over to the GitHub repository we need to
 check out the [release commit that bumped the version number](#add-the-changeset-id)
-on mozilla-central:
+on `main` (formerly `mozilla-central`):
 
 ```shell
-% hg update $RELEASE_REVISION
-```
-
-Or:
-
-```shell
-% git checkout $(git cinnabar hg2git $RELEASE_REVISION)
+% git checkout $RELEASE_REVISION
 ```
 
 We will now export the contents of [testing/geckodriver] to a new branch that
@@ -280,6 +278,7 @@ geckodriver needs to be manually released on github.com. Therefore start to
 4. Find the signed geckodriver archives in the [taskcluster index] by
    replacing %changeset% with the full release changeset id. Rename the
    individual files so the basename looks like 'geckodriver-v%version%-%platform%'.
+   For macOS use the `macosx64-notarized` builds.
 
    The macOS build is a universal binary (x86_64 + aarch64). For
    backward compatibility, create a copy of the macOS archive with
