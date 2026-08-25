@@ -7,6 +7,19 @@ All notable changes to this program are documented in this file.
 
 ### Known problems
 
+- _Firefox for Android is blocked for automation by the onboarding flow:_
+
+ Firefox for Android versions 153 and later can hang during startup when under automation.
+ To work around this add the following to `moz:firefoxOptions` in the session capabilities:
+
+  ```json
+  "androidIntentArguments": [
+    "-a", "android.intent.action.VIEW",
+    "-d", "about:blank",
+    "--ez", "automationtest", "true"
+  ]
+  ```
+
 - _Startup hang with Firefox running in a container (e.g. snap, flatpak):_
 
   When Firefox is packaged inside a container (like the default Firefox browser
@@ -30,6 +43,19 @@ All notable changes to this program are documented in this file.
 ## 0.37.0 (2026-06-03, `253b85235865`)
 
 ### Known problems
+
+- _Firefox for Android is blocked for automation by the onboarding flow:_
+
+ Firefox for Android versions 153 and later can hang during startup when under automation.
+ To work around this add the following to `moz:firefoxOptions` in the session capabilities:
+
+  ```json
+  "androidIntentArguments": [
+    "-a", "android.intent.action.VIEW",
+    "-d", "about:blank",
+    "--ez", "automationtest", "true"
+  ]
+  ```
 
 - _Startup hang with Firefox running in a container (e.g. snap, flatpak):_
 
